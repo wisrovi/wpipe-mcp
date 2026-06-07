@@ -1,16 +1,35 @@
 [project]
 name = "wpipe-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP Server for WPipe Architecting"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "William Rodriguez (wisrovi)", email = "wisrovi.rodriguez@gmail.com"}
+]
+keywords = ["mcp", "wpipe", "pipeline", "orchestration", "ai", "agent"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Intended Audience :: Developers",
+]
 dependencies = [
     "mcp[cli]>=1.0.0",
     "fastmcp>=0.1.0",
     "pydantic>=2.0.0"
 ]
 
+[project.urls]
+Homepage = "https://github.com/wisrovi/wpipe-mcp"
+Repository = "https://github.com/wisrovi/wpipe-mcp.git"
+Issues = "https://github.com/wisrovi/wpipe-mcp/issues"
+
 [project.scripts]
 wpipe-mcp = "wpipe_mcp.server:main"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"

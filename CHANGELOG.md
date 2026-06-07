@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.1] - 2026-06-07
+
+### Fixed
+- **PyPI Metadata**: Added `README.md` and complete project metadata (authors, URLs, license) for a professional appearance on PyPI.
+
 ## [0.1.0] - 2026-06-07
 
 ### Added
