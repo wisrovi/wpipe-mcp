@@ -1,43 +1,18 @@
-# WPipe Changelog
+# Changelog
 
-All notable changes to WPipe will be documented in this file.
+## [0.1.0] - 2026-06-07
 
----
+### Added
+- **Unified CLI**: New `wpipe-mcp` command with subcommands: `run`, `start`, `stop`, `config`, and `help`.
+- **Architect's Manual**: Built-in tool that provides AI agents with professional WPipe design guidelines.
+- **Advanced Scaffolding**: Deploys professional project structures with Class-based states and Pydantic-typed contexts.
+- **Enhanced Catalog**: Real-time synchronization with Official and Community registries (GitHub) providing namespaces and metadata.
+- **Automated Installer**: `installer.sh` for easy environment setup and agent integration.
 
-## [1.5.1] - 2026-04-10
+### Changed
+- **Modernized Structure**: Cleaned up the repository, removed legacy `setup.py`, and adopted `pyproject.toml` standards.
+- **Professional Templates**: Boilerplate now follows LTS standards for high-performance pipelines.
 
 ### Fixed
-- Alert system API compatibility with new `expression` parameter
-- Performance comparison example using `get_stats()` instead of deprecated method
-- Reduced package size (42MB → 140KB) by excluding heavy examples
-
----
-
-## [1.5.0] - 2026-04-10
-
-### Added
-- **ParallelExecutor**: Execute pipeline steps in parallel (ThreadPoolExecutor/ProcessPoolExecutor)
-- **ExecutionMode**: IO_BOUND, CPU_BOUND, SEQUENTIAL
-- **DAGScheduler**: Dependency graph management with topological sorting
-- **PipelineAsStep**: Use pipelines as steps in other pipelines
-- **@step()** decorator: Inline step definition
-- **StepRegistry**: Central registry for decorated steps
-- **ResourceMonitor**: Track RAM/CPU during execution
-- **Exporter**: JSON/CSV export capabilities
-- **Type validators**: Input/output validation
-
----
-
-## [1.0.0] - 2024-04-01
-
-### Added
-- **Pipeline**: Core pipeline orchestration
-- **Condition**: Conditional branching based on data
-- **Retry**: Automatic retry with backoff
-- **APIClient**: External API integration
-- **SQLite/Wsqlite**: Data persistence
-- **Error handling**: Custom exceptions with codes
-- **YAML config**: Load configurations from YAML
-- **Nested pipelines**: Compose complex workflows
-- **Progress tracking**: Rich terminal output
-- **Type hints**: Complete type annotations
+- **Catalog Reliability**: Improved fallback mechanisms for offline use.
+- **Directory Management**: Safer filesystem operations during project deployment.
