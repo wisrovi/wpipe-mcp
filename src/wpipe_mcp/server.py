@@ -18,14 +18,20 @@ PID_FILE = os.path.expanduser("~/.wpipe_mcp.pid")
 
 # Create the primary FastMCP Server instance
 mcp = FastMCP("wpipe-mcp-server")
-catalog = StepsCatalog()
+catalog = None # Lazy initialization
+
+def get_catalog():
+    global catalog
+    if catalog is None:
+        catalog = StepsCatalog()
+    return catalog
 
 # --- Tools ---
 
 @mcp.tool()
 def search_wpipe_step(query: str) -> str:
     """Search for existing pipeline steps in official and community catalogs."""
-    results = catalog.search(query)
+    results = get_catalog().search(query)
     if not results:
         return f"No custom step matching '{query}' was found. Recommend building a native WPipe Class-based Step."
     
@@ -61,11 +67,14 @@ def deploy_wpipe_scaffolding(target_dir: str, project_name: str = "wpipe_project
 def get_wpipe_architect_manual() -> str:
     """Expert manual for building high-performance pipelines (wisrovi standard)."""
     return (
-        "WPIPE ARCHITECT MANUAL\n"
-        "1. Prefer Class-based States (@step).\n"
-        "2. Use Typed Context (PipelineContext/Pydantic).\n"
-        "3. Apply @to_obj on __call__.\n"
-        "4. Always use tracking_db for forensics."
+        "WPIPE ARCHITECT MANUAL (ADVANCED)\n"
+        "1. Prefer Class-based States (@step) for complex logic.\n"
+        "2. Contexts must inherit from pydantic.BaseModel for strong typing.\n"
+        "3. Use @timeout_sync(seconds=N) and @to_obj(ContextClass) on __call__.\n"
+        "4. Always use tracking_db=\"path/to/db\" for forensics and metrics.\n"
+        "5. Wrap execution in ResourceMonitor and TaskTimer context managers.\n"
+        "6. Use @time_execution decorator from wdecorators for performance tracking.\n"
+        "7. Configure max_retries and retry_delay at both Step and Pipeline levels."
     )
 
 # --- CLI Actions ---
@@ -113,19 +122,35 @@ def stop_background():
     finally:
         os.remove(PID_FILE)
 
-def print_config():
-    """Prints the JSON configuration for agents."""
-    path = subprocess.check_output(["which", "wpipe-mcp"]).decode().strip()
+def print_config(write_file: bool = True):
+    """Prints or saves the JSON configuration for agents."""
+    python_path = sys.executable
     config = {
         "mcpServers": {
             "wpipe-mcp": {
-                "command": path,
-                "args": ["run"],
+                "command": python_path,
+                "args": ["-m", "wpipe_mcp.server", "run"],
                 "env": {}
             }
         }
     }
-    print(json.dumps(config, indent=2))
+
+    config_json = json.dumps(config, indent=2)
+
+    if not write_file:
+        print(config_json)
+        return
+
+    # Create .agents directory in the current working directory
+    target_dir = os.getcwd()
+    agents_dir = os.path.join(target_dir, ".agents")
+    os.makedirs(agents_dir, exist_ok=True)
+    
+    config_path = os.path.join(agents_dir, "wpipe-mcp.json")
+    with open(config_path, "w") as f:
+        f.write(config_json)
+    
+    print(f"✅ Configuration saved to: {config_path}")
 
 # --- Main Entry Point ---
 
@@ -134,8 +159,17 @@ def main():
     parser.add_argument("command", nargs="?", default="run", 
                         choices=["run", "run-sse", "start", "stop", "config", "help"],
                         help="Command to execute (default: run)")
+    parser.add_argument("--print", action="store_true", 
+                        help="Print configuration to stdout instead of saving to .agents/")
 
     args = parser.parse_args()
+
+    # Silence logging for 'config' to keep output clean
+    if args.command == "config":
+        logging.getLogger().setLevel(logging.ERROR)
+        print_config(write_file=not args.print)
+        return
+
 
     if args.command == "run":
         run_stdio()

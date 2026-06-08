@@ -1,1 +1,1 @@
-from .controller import Basemodel
+# wpipe-mcp package

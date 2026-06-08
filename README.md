@@ -13,8 +13,8 @@
 ## ✨ Key Features
 
 - **🔍 Expert Catalog Search**: Query over 100+ production-ready steps from Official and Community registries.
-- **🏗️ Professional Scaffolding**: Deploy complete project structures with LTS patterns (Class-based states, Typed Context, Pydantic).
-- **📘 Architect's Manual**: Built-in expertise that teaches agents how to build pipelines exactly like a Senior Engineer.
+- **🏗️ Professional Scaffolding**: Deploy complete project structures with LTS patterns (ResourceMonitor, TaskTimer, Typed Context, Pydantic).
+- **📘 Architect's Manual**: Built-in expertise that teaches agents how to build pipelines with performance tracking and resilient state management.
 - **💻 Unified CLI**: Manage your MCP service with simple commands: `run`, `start`, `stop`, and `config`.
 - **🛡️ Privacy First**: 100% local execution via `stdio` or `SSE`.
 
@@ -44,7 +44,8 @@ Copy the output into your agent's configuration file (e.g., `claude_desktop_conf
 | `wpipe-mcp run` | Start the server in `stdio` mode (default for agents). |
 | `wpipe-mcp start` | Start as an SSE server in the background. |
 | `wpipe-mcp stop` | Stop the background server. |
-| `wpipe-mcp config` | Generate JSON configuration for AI agents. |
+| `wpipe-mcp config` | Generate and save JSON config to `.agents/wpipe-mcp.json`. |
+| `wpipe-mcp config --print` | Show JSON configuration in stdout (no file creation). |
 | `wpipe-mcp help` | Show available tools and commands. |
 
 ---
