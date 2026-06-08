@@ -2,8 +2,7 @@ import json
 import urllib.request
 import logging
 
-# Configuración de logging básica
-logging.basicConfig(level=logging.INFO)
+# Use a module-level logger
 logger = logging.getLogger(__name__)
 
 class StepsCatalog:

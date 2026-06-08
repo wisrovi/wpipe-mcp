@@ -9,8 +9,12 @@ from mcp.server.fastmcp import FastMCP
 from wpipe_mcp.catalog import StepsCatalog
 from wpipe_mcp.templates import TemplateGenerator
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+# Setup logging strictly to stderr to avoid breaking MCP protocol
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(levelname)s: %(message)s',
+    stream=sys.stderr
+)
 logger = logging.getLogger(__name__)
 
 # PID file for background service
@@ -27,6 +31,71 @@ def get_catalog():
     return catalog
 
 # --- Tools ---
+
+@mcp.tool()
+def get_wpipe_architect_blueprints() -> str:
+    """Provides expert code blueprints for high-performance WPipe States and Pipelines."""
+    state_code = (
+        "from wpipe import step, to_obj\\n"
+        "from wpipe.timeout import timeout_sync\\n"
+        "from typing import Any\\n"
+        "from pydantic import BaseModel\\n\\n"
+        "class MyContext(BaseModel):\\n"
+        "    field: str\\n\\n"
+        "@step(\\n"
+        "    name=\"MyStep\",\\n"
+        "    version=\"v1.0\",\\n"
+        "    timeout=10,\\n"
+        "    description=\"Step description\",\\n"
+        "    tags=[\"custom\"],\\n"
+        "    retry_count=3,\\n"
+        "    retry_delay=0.01,\\n"
+        ")\\n"
+        "class MyStep:\\n"
+        "    def __init__(self, config: str = \"value\"):\\n"
+        "        self.config = config\\n\\n"
+        "    @timeout_sync(seconds=2)\\n"
+        "    @to_obj(MyContext)\\n"
+        "    def __call__(self, context: Any) -> Any:\\n"
+        "        # Professional logic here\\n"
+        "        print(f\"🚀 Executing with config: {self.config}\")\\n"
+        "        return context\\n"
+    )
+    
+    pipeline_code = (
+        "from wdecorators import time_execution\\n"
+        "from wpipe import Pipeline, ResourceMonitor, TaskTimer\\n"
+        "from wpipe.exception.api_error import ProcessError\\n\\n"
+        "def run_pipeline():\\n"
+        "    pipeline = Pipeline(\\n"
+        "        pipeline_name=\"professional_pipeline\",\\n"
+        "        pipeline_version=\"1.0.0\",\\n"
+        "        tracking_db=\"output/tracking.db\",\\n"
+        "        collect_system_metrics=True,\\n"
+        "        show_progress=True,\\n"
+        "        max_retries=3,\\n"
+        "        retry_delay=0.5\\n"
+        "    )\\n\\n"
+        "    pipeline.set_steps([step_1])\\n\\n"
+        "    if __name__ == \"__main__\":\\n"
+        "        try:\\n"
+        "            with ResourceMonitor(\"my_monitor\") as monitor:\\n"
+        "                with TaskTimer(\"my_timer\", timeout_seconds=900) as timer:\\n"
+        "                    @time_execution\\n"
+        "                    def run():\\n"
+        "                        return pipeline.run({{\"data\": \"init\"}})\\n"
+        "                    run()\\n"
+        "            summary = monitor.get_summary()\\n"
+        "            print(f\"Peak RAM: {summary['peak_ram_mb']} MB\")\\n"
+        "        except ProcessError as e:\\n"
+        "            print(f\"Error: {e}\")\\n"
+    )
+    
+    return (
+        "WPIPE EXPERT BLUEPRINTS\\n\\n"
+        "### 1. Advanced State Pattern:\\n" + state_code + "\\n\\n"
+        "### 2. High-Performance Pipeline Pattern:\\n" + pipeline_code
+    )
 
 @mcp.tool()
 def search_wpipe_step(query: str) -> str:

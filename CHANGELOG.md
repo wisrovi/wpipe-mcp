@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1] - 2026-06-08
+
+### Added
+- **Expert Blueprints Tool**: New `get_wpipe_architect_blueprints` tool providing copy-pasteable professional code for states and pipelines.
+
+### Fixed
+- **Protocol Integrity**: Forced all logging to `sys.stderr` to prevent JSON-RPC corruption on `stdout`, resolving "Invalid JSON" errors in MCP clients.
+- **Redundant Logging**: Cleaned up global logging configurations in `catalog.py`.
+
 ## [0.2.0] - 2026-06-08
 
 ### Added
