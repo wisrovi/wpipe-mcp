@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "wpipe-mcp": {
-      "command": "/home/william.rodriguez/miniconda3/envs/cv/bin/python3.10",
+      "command": "/home/william.rodriguez/miniconda3/bin/python3.13",
       "args": [
         "-m",
         "wpipe_mcp.server",

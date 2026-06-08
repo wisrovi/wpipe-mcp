@@ -1,6 +1,6 @@
 [project]
 name = "wpipe-mcp"
-version = "0.2.1"
+version = "0.3.0"
 description = "MCP Server for WPipe Architecting"
 readme = "README.md"
 requires-python = ">=3.10"
