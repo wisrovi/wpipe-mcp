@@ -449,6 +449,213 @@ def document_wpipe_project(project_path: str, write_to_readme: bool = True) -> s
     return f"Success: Technical execution flow documented successfully.\n\n{flow_md}"
 
 
+@mcp.tool()
+def refactor_monolith_to_wpipe(source_file_path: str, target_dir: str) -> str:
+    """Refactors a monolithic python script into a clean structured WPipe microservice project layout under target_dir/app/."""
+    import ast
+    import textwrap
+    
+    if not os.path.isabs(source_file_path) or not os.path.isabs(target_dir):
+        return "Error: Both source_file_path and target_dir must be absolute paths."
+
+    if not os.path.exists(source_file_path):
+        return f"Error: Source file '{source_file_path}' does not exist."
+
+    try:
+        with open(source_file_path, "r", encoding="utf-8") as f:
+            code = f.read()
+            f.seek(0)
+            lines = f.readlines()
+            
+        tree = ast.parse(code)
+    except Exception as e:
+        return f"Error parsing source file: {str(e)}"
+
+    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+    
+    steps = []
+    dto_fields = set()
+    
+    app_dir = os.path.join(target_dir, "app")
+    os.makedirs(os.path.join(app_dir, "dto"), exist_ok=True)
+    os.makedirs(os.path.join(app_dir, "states"), exist_ok=True)
+    os.makedirs(os.path.join(app_dir, "config"), exist_ok=True)
+    os.makedirs(os.path.join(app_dir, "model"), exist_ok=True)
+    os.makedirs(os.path.join(app_dir, "services"), exist_ok=True)
+    os.makedirs(os.path.join(app_dir, "utils"), exist_ok=True)
+    os.makedirs(os.path.join(app_dir, "test"), exist_ok=True)
+
+    if not functions:
+        step_name = "MainProcessStep"
+        clean_name = "main_process"
+        
+        dedented = textwrap.indent(code, "        ")
+        step_code = (
+            "from typing import Any\n"
+            "from wpipe import step, to_obj\n"
+            "from dto.context import RefactoredContext\n\n"
+            "@step(\n"
+            f"    name=\"{step_name}\",\n"
+            "    version=\"v1.0\",\n"
+            "    timeout=30,\n"
+            "    description=\"Auto-refactored step from monolith\",\n"
+            ")\n"
+            f"class {step_name}:\n"
+            "    def __call__(self, context: Any) -> Any:\n"
+            "        # Auto-generated step execution logic\n"
+            f"{dedented}\n"
+            "        return context\n"
+        )
+        
+        steps.append((step_name, clean_name, step_code))
+    else:
+        for idx, func in enumerate(functions):
+            func_name = func.name
+            step_name = "".join([part.capitalize() for part in func_name.split("_")]) + "Step"
+            clean_name = f"step_{idx}_{func_name}"
+            
+            args = [arg.arg for arg in func.args.args]
+            for arg in args:
+                dto_fields.add(arg)
+                
+            func_lines = lines[func.lineno - 1 : func.end_lineno]
+            
+            def_idx = 0
+            for i, line in enumerate(func_lines):
+                if line.strip().startswith("def "):
+                    def_idx = i
+                    break
+            body_lines = func_lines[def_idx + 1:]
+            
+            if body_lines:
+                body_text = textwrap.dedent("".join(body_lines))
+                indented_body = textwrap.indent(body_text, "        ")
+            else:
+                indented_body = "        pass\n"
+
+            unpack_code = ""
+            if args:
+                unpack_code = "        # Unpack input fields from context\n"
+                for arg in args:
+                    unpack_code += f"        # {arg} = context.{arg}\n"
+                unpack_code += "\n"
+                
+            step_code = (
+                "from typing import Any\n"
+                "from wpipe import step, to_obj\n"
+                "from dto.context import RefactoredContext\n\n"
+                "@step(\n"
+                f"    name=\"{step_name}\",\n"
+                "    version=\"v1.0\",\n"
+                "    timeout=30,\n"
+                f"    description=\"Auto-refactored step from function {func_name}\",\n"
+                ")\n"
+                f"class {step_name}:\n"
+                "    def __call__(self, context: Any) -> Any:\n"
+                f"{unpack_code}"
+                f"{indented_body}\n"
+                "        return context\n"
+            )
+            steps.append((step_name, clean_name, step_code))
+
+    dto_content = (
+        "from pydantic import BaseModel\n"
+        "from typing import Optional, Dict, Any\n\n"
+        "class RefactoredContext(BaseModel):\n"
+        "    \"\"\"Shared context containing properties auto-extracted during refactoring.\"\"\"\n"
+    )
+    if dto_fields:
+        for field in sorted(dto_fields):
+            dto_content += f"    {field}: Optional[Any] = None\n"
+    else:
+        dto_content += "    data: Dict[str, Any] = {}\n"
+        
+    with open(os.path.join(app_dir, "dto", "context.py"), "w", encoding="utf-8") as f:
+        f.write(dto_content)
+        
+    with open(os.path.join(app_dir, "dto", "__init__.py"), "w", encoding="utf-8") as f:
+        f.write("from .context import RefactoredContext\n")
+
+    for step_name, clean_name, step_code in steps:
+        with open(os.path.join(app_dir, "states", f"{clean_name}.py"), "w", encoding="utf-8") as f:
+            f.write(step_code)
+            
+    states_init = ""
+    for step_name, clean_name, _ in steps:
+        states_init += f"from .{clean_name} import {step_name}\n"
+    with open(os.path.join(app_dir, "states", "__init__.py"), "w", encoding="utf-8") as f:
+        f.write(states_init)
+
+    imports_str = ""
+    instantiations_str = ""
+    for step_name, clean_name, _ in steps:
+        imports_str += f"from states.{clean_name} import {step_name}\n"
+        instantiations_str += f"        {step_name}(),\n"
+        
+    pipelines_content = (
+        f"{imports_str}"
+        "from wpipe import Pipeline\n\n"
+        "def build_pipeline() -> Pipeline:\n"
+        "    pipeline = Pipeline(\n"
+        "        pipeline_name=\"refactored_pipeline\",\n"
+        "        pipeline_version=\"1.0.0\",\n"
+        "        tracking_db=\"output/tracking.db\",\n"
+        "        collect_system_metrics=True\n"
+        "    )\n"
+        "    pipeline.set_steps([\n"
+        f"{instantiations_str}"
+        "    ])\n"
+        "    return pipeline\n"
+    )
+    with open(os.path.join(app_dir, "pipelines.py"), "w", encoding="utf-8") as f:
+        f.write(pipelines_content)
+
+    main_content = (
+        "import sys\n"
+        "from wpipe.exception.api_error import ProcessError\n"
+        "from pipelines import build_pipeline\n\n"
+        "def main():\n"
+        "    pipeline = build_pipeline()\n"
+        "    try:\n"
+        "        # Pass initial parameters matching RefactoredContext\n"
+        "        result = pipeline.run({})\n"
+        "        print(\"Pipeline execution completed successfully.\")\n"
+        "        return result\n"
+        "    except ProcessError as e:\n"
+        "        print(f\"Pipeline execution failed: {e}\", file=sys.stderr)\n"
+        "        sys.exit(1)\n\n"
+        "if __name__ == \"__main__\":\n"
+        "    main()\n"
+    )
+    with open(os.path.join(app_dir, "main.py"), "w", encoding="utf-8") as f:
+        f.write(main_content)
+
+    with open(os.path.join(app_dir, "config", "__init__.py"), "w") as f: f.write("")
+    with open(os.path.join(app_dir, "model", ".gitkeep"), "w") as f: f.write("")
+    with open(os.path.join(app_dir, "services", "__init__.py"), "w") as f: f.write("")
+    with open(os.path.join(app_dir, "utils", "__init__.py"), "w") as f: f.write("")
+    
+    with open(os.path.join(target_dir, "requirements.txt"), "w") as f:
+        f.write("wpipe>=1.0.0\npydantic>=2.0.0\n")
+    with open(os.path.join(target_dir, "wpipe.config.json"), "w") as f:
+        f.write('{\n  "enableBackupFile": true,\n  "maxSearchFiles": 500\n}\n')
+
+    with open(os.path.join(app_dir, "test", "README.md"), "w") as f:
+        f.write(
+            "# Unit Tests Directory\n\n"
+            "This directory is designated for unit and integration testing of the microservice components using `pytest`.\n\n"
+            "### How to Execute:\n"
+            "Execute tests from the project root directory inside your development environment or container using:\n"
+            "```bash\n"
+            "pytest app/test/\n"
+            "```\n"
+        )
+
+    document_wpipe_project(target_dir, write_to_readme=True)
+
+    return f"Success: Monolith refactored successfully into target directory '{target_dir}'."
+
+
 # --- CLI Actions ---
 
 
