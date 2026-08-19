@@ -214,3 +214,78 @@ def test_refactor_monolith_to_wpipe(tmp_path):
     readme_content = (tmp_path / "refactored" / "README.md").read_text()
     assert "LoadImagesStep" in readme_content
     assert "RunPredictionStep" in readme_content
+
+
+def test_generate_wpipe_tests(tmp_path):
+    """
+    Validates that generate_wpipe_tests correctly creates pytest file structure
+    and boilerplate code for all states discovered in the target project path.
+    """
+    # Arrange: Scaffold a mock microservice wpipe project
+    target = str(tmp_path / "test_gen_project")
+    server.deploy_wpipe_scaffolding(target, project_name="TestGen", pipeline_type="microservice")
+
+    # Act: Generate the unit tests
+    result = server.generate_wpipe_tests(target)
+
+    # Assert: Verify success status and that test files were created with correct content
+    assert "Success:" in result
+    test_file = tmp_path / "test_gen_project" / "app" / "test" / "test_step_a.py"
+    assert test_file.exists()
+    content = test_file.read_text()
+    assert "test_inferenciastep_execution" in content
+    assert "MockContext" in content
+
+
+def test_validate_context_flow(tmp_path):
+    """
+    Validates that validate_context_flow statically analyzes state files
+    and catches missing field reads or displays inputs/outputs correctly.
+    """
+    # Arrange: Scaffold a mock microservice project
+    target = str(tmp_path / "test_flow_project")
+    server.deploy_wpipe_scaffolding(target, project_name="TestFlow", pipeline_type="microservice")
+
+    # Act: Perform static data flow validation
+    report = server.validate_context_flow(target)
+
+    # Assert: Verify validation detects InferenciaStep reads/writes
+    assert "WPipe Static Data Flow Analysis" in report
+    assert "InferenciaStep" in report
+
+
+def test_dry_run_pipeline(tmp_path):
+    """
+    Validates that dry_run_pipeline correctly simulates execution of steps
+    using the provided initial JSON data and traces context mutations.
+    """
+    # Arrange: Scaffold project
+    target = str(tmp_path / "test_dry_project")
+    server.deploy_wpipe_scaffolding(target, project_name="TestDry", pipeline_type="microservice")
+
+    # Act: Dry run with initial context
+    initial_data = '{"transaction_id": "999", "input_path": "/data"}'
+    report = server.dry_run_pipeline(target, initial_data)
+
+    # Assert: Verify execution log has step simulation details
+    assert "WPipe Dry Run Simulation Log" in report
+    assert "InferenciaStep" in report
+    assert "999" in report
+
+
+def test_optimize_wpipe_pipeline(tmp_path):
+    """
+    Validates that optimize_wpipe_pipeline scores compliance correctly,
+    flags missing decorators, monitoring tools, or configurations, and suggests fixes.
+    """
+    # Arrange: Scaffold project
+    target = str(tmp_path / "test_opt_project")
+    server.deploy_wpipe_scaffolding(target, project_name="TestOpt", pipeline_type="microservice")
+
+    # Act: Run optimization analysis
+    report = server.optimize_wpipe_pipeline(target)
+
+    # Assert: Report is generated with correct optimization score and suggestions
+    assert "Performance & Optimization Report" in report
+    assert "Optimization Score" in report
+
