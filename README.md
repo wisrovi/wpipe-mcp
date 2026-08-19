@@ -6,17 +6,29 @@
 
 **Transform your AI Agents into expert WPipe Architects.**
 
-`wpipe-mcp` is a professional Model Context Protocol (MCP) server that bridges the gap between AI Agents (Claude, Gemini, OpenCode) and the **wisrovi SUITE**. It empowers agents to search, design, and deploy high-performance pipelines following strict industry-standard patterns.
+`wpipe-mcp` is a professional Model Context Protocol (MCP) server that bridges the gap between AI Agents (Claude, Gemini, OpenCode) and the **wisrovi SUITE**. It empowers agents to search, design, validate, and deploy high-performance pipelines following strict industry-standard patterns.
 
 ---
 
 ## ✨ Key Features
 
 - **🔍 Expert Catalog Search**: Query over 100+ production-ready steps from Official and Community registries.
-- **🏗️ Strict Architecture Enforcement**: Guides AI to output clean code using mandatory `dto/`, `states/`, and `main.py` folder structures.
+- **🏗️ Strict Architecture Enforcement**: Guides AI to output clean code using mandatory `dto/`, `states/`, and `main.py` folder structures, including the new internal microservice `app/` layout.
+- **🛡️ Project Architectural Validation**: Verify that any existing code structure complies with the WPipe standards using `validate_wpipe_project` to check directories, step decorators, and context schemas.
 - **📘 Architect's Manual**: Built-in expertise for Monolith-to-Pipeline refactoring, performance tracking, and resilient state management.
 - **💻 Unified CLI**: Manage your MCP service with simple commands: `run`, `start`, `stop`, and `config`.
-- **🛡️ Privacy First**: 100% local execution via `stdio` or `SSE`.
+- **🔒 Privacy First**: 100% local execution via `stdio` or `SSE`.
+
+---
+
+## 🛠️ Key Technologies & Libraries
+
+This MCP server relies on the following key tools and libraries:
+* **Model Context Protocol (MCP)**: Server protocol implementation for agent interaction.
+* **FastMCP (mcp-sdk-python)**: Framework to declare tools and resources cleanly.
+* **Pydantic**: Structural validation, schema checks, and context enforcement.
+* **Pytest & Pytest-Cov**: Automated unit testing and coverage report analysis.
+* **Ruff**: Modern linting and styling consistency.
 
 ---
 
@@ -37,16 +49,28 @@ The CLI will dynamically detect your Python environment and provide exact copy-p
 
 ---
 
-## 🛠️ CLI Usage
+## 🧪 Running Tests
 
-| Command | Description |
-| :--- | :--- |
-| `wpipe-mcp run` | Start the server in `stdio` mode (default for agents). |
-| `wpipe-mcp start` | Start as an SSE server in the background. |
-| `wpipe-mcp stop` | Stop the background server. |
-| `wpipe-mcp config` | Generate and save JSON config to `.agents/wpipe-mcp.json`. |
-| `wpipe-mcp config --print` | Show JSON configuration in stdout (no file creation). |
-| `wpipe-mcp help` | Show available tools and commands. |
+Unit tests are written with `pytest`. You can run them in three ways:
+
+### 1. Locally (with development dependencies installed)
+To execute tests locally with python path environment set up:
+```bash
+PYTHONPATH=src pytest tests/ -v
+```
+
+### 2. Inside a Docker Container (Recommended)
+To run tests in a containerized environment to isolate dependencies:
+```bash
+./run_tests_docker.sh
+```
+
+### 3. Calculate Code Coverage
+To run tests and get a detailed statement of code coverage:
+```bash
+./run_coverage.sh
+```
+This generates an HTML report in `htmlcov/index.html`.
 
 ---
 
@@ -55,6 +79,7 @@ The CLI will dynamically detect your Python environment and provide exact copy-p
 - `src/wpipe_mcp/catalog.py`: Real-time GitHub catalog synchronization.
 - `src/wpipe_mcp/templates.py`: Professional boilerplate definitions.
 - `examples/`: Sample implementations and use cases.
+- `tests/`: Automated unit tests verifying blueprints, scaffolding, and validation.
 
 ---
 
