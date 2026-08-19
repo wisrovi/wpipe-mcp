@@ -15,6 +15,7 @@
 - **🔍 Expert Catalog Search**: Query over 100+ production-ready steps from Official and Community registries.
 - **🏗️ Strict Architecture Enforcement**: Guides AI to output clean code using mandatory `dto/`, `states/`, and `main.py` folder structures, including the new internal microservice `app/` layout.
 - **🛡️ Project Architectural Validation**: Verify that any existing code structure complies with the WPipe standards using `validate_wpipe_project` to check directories, step decorators, and context schemas.
+- **⚙️ Automated Monolith Refactoring**: Automatically split monolithic Python scripts into modular class-based WPipe steps (`@step`) and shared contexts with `refactor_monolith_to_wpipe`.
 - **📊 Automatic Pipeline Documentation**: Generate complete Mermaid DAG flowcharts and technical markdown specifications directly in the project's root `README.md` with `document_wpipe_project`.
 - **📘 Architect's Manual**: Built-in expertise for Monolith-to-Pipeline refactoring, performance tracking, and resilient state management.
 - **💻 Unified CLI**: Manage your MCP service with simple commands: `run`, `start`, `stop`, and `config`.
