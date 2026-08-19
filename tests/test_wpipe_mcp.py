@@ -161,3 +161,22 @@ def test_validate_wpipe_project_violations(tmp_path):
     assert "Architectural violation: Pydantic 'BaseModel' defined in" in report
     assert "wrong_step.py" in report
     assert "wrong_model.py" in report
+
+
+def test_document_wpipe_project(tmp_path):
+    target = str(tmp_path / "doc_project")
+    server.deploy_wpipe_scaffolding(
+        target, project_name="DocApp", pipeline_type="microservice", include_tests=True
+    )
+    
+    report = server.document_wpipe_project(target, write_to_readme=True)
+    assert "Success: Technical execution flow documented successfully." in report
+    assert "InferenciaStep" in report
+    assert "graph TD" in report
+    
+    readme_file = tmp_path / "doc_project" / "README.md"
+    assert readme_file.exists()
+    content = readme_file.read_text()
+    assert "## 🦅 WPipe Execution Flow" in content
+    assert "<!-- WPIPE_FLOW_START -->" in content
+    assert "<!-- WPIPE_FLOW_END -->" in content
