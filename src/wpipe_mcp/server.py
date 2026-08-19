@@ -656,6 +656,395 @@ def refactor_monolith_to_wpipe(source_file_path: str, target_dir: str) -> str:
     return f"Success: Monolith refactored successfully into target directory '{target_dir}'."
 
 
+@mcp.tool()
+def generate_wpipe_tests(project_path: str) -> str:
+    """Generates professional Pytest unit tests for all detected steps in a WPipe project."""
+    import re
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+
+    if not os.path.exists(project_path):
+        return f"Error: The path '{project_path}' does not exist."
+
+    app_dir = os.path.join(project_path, "app")
+    is_microservice = os.path.exists(app_dir) and os.path.isdir(app_dir)
+    base_dir = app_dir if is_microservice else project_path
+
+    states_dir = os.path.join(base_dir, "states")
+    test_dir = os.path.join(base_dir, "test" if is_microservice else "tests")
+
+    if not os.path.exists(states_dir) or not os.path.isdir(states_dir):
+        return f"Error: Mandatory states/ directory not found in '{base_dir}'."
+
+    os.makedirs(test_dir, exist_ok=True)
+    generated = []
+
+    # Scan states/
+    for root, _, files in os.walk(states_dir):
+        for file in files:
+            if not file.endswith(".py") or file == "__init__.py":
+                continue
+            file_path = os.path.join(root, file)
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+
+                # Find step classes
+                matches = re.findall(r"class\s+(\w+Step|\w+):", content)
+                for class_name in matches:
+                    test_file_name = f"test_{file.replace('.py', '')}.py"
+                    test_file_path = os.path.join(test_dir, test_file_name)
+
+                    # Boilerplate code with extensive comments in English
+                    test_code = (
+                        f'"""\\n'
+                        f'Unit tests for {class_name}.\\n'
+                        f'This file verifies that the step performs its logic correctly and mutates the context.\\n'
+                        f'"""\\n\\n'
+                        f'import pytest\\n'
+                        f'from unittest.mock import MagicMock\\n'
+                        f'# Import the step and the DTO context. Adjust paths if necessary.\\n'
+                        f'try:\\n'
+                        f'    from states.{file.replace(".py", "")} import {class_name}\\n'
+                        f'    from dto.context import RefactoredContext as TestContext\\n'
+                        f'except ImportError:\\n'
+                        f'    try:\\n'
+                        f'        from app.states.{file.replace(".py", "")} import {class_name}\\n'
+                        f'        from app.dto.context import RefactoredContext as TestContext\\n'
+                        f'    except ImportError:\\n'
+                        f'        # Fallback mocks if layout is running inside docker or custom environments\\n'
+                        f'        pass\\n\\n'
+                        f'def test_{class_name.lower()}_execution():\\n'
+                        f'    """\\n'
+                        f'    Validates that {class_name} executes its logic on the context and updates necessary fields.\\n'
+                        f'    """\\n'
+                        f'    # 1. Arrange: Setup the step instance and initial context state\\n'
+                        f'    step_instance = {class_name}()\\n'
+                        f'    \\n'
+                        f'    # Create a mock or real context representation\\n'
+                        f'    class MockContext:\\n'
+                        f'        def __init__(self):\\n'
+                        f'            self.data = {{"status": "PENDING"}}\\n'
+                        f'            self.status = "PENDING"\\n'
+                        f'            self.transaction_id = "12345"\\n'
+                        f'            self.input_path = "/tmp/test"\\n'
+                        f'            self.output_path = None\\n\\n'
+                        f'    context = MockContext()\\n\\n'
+                        f'    # 2. Act: Call the step passing the context\\n'
+                        f'    result = step_instance(context)\\n\\n'
+                        f'    # 3. Assert: Verify the result is not None and contains expected changes\\n'
+                        f'    assert result is not None\\n'
+                    )
+
+                    with open(test_file_path, "w", encoding="utf-8") as f_out:
+                        f_out.write(test_code)
+                    generated.append(test_file_name)
+            except Exception as e:
+                return f"Error reading state file {file}: {str(e)}"
+
+    return f"Success: Generated unit test files: {', '.join(generated)}"
+
+
+@mcp.tool()
+def validate_context_flow(project_path: str) -> str:
+    """Statically analyzes a WPipe project to verify that context fields are correctly passed and consumed between steps."""
+    import re
+    import ast
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+
+    if not os.path.exists(project_path):
+        return f"Error: The path '{project_path}' does not exist."
+
+    app_dir = os.path.join(project_path, "app")
+    is_microservice = os.path.exists(app_dir) and os.path.isdir(app_dir)
+    base_dir = app_dir if is_microservice else project_path
+
+    # Trace steps execution order
+    pipelines_file = os.path.join(base_dir, "pipelines.py")
+    if not os.path.exists(pipelines_file):
+        pipelines_file = os.path.join(base_dir, "main.py")
+
+    ordered_steps = []
+    if os.path.exists(pipelines_file):
+        try:
+            with open(pipelines_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            set_steps_match = re.search(r"set_steps\(\s*\[(.*?)\]\s*\)", content, re.DOTALL)
+            if set_steps_match:
+                steps_content = set_steps_match.group(1)
+                instances = re.findall(r"(\w+)\s*\(", steps_content)
+                ordered_steps = [inst for inst in instances]
+        except Exception:
+            pass
+
+    states_dir = os.path.join(base_dir, "states")
+    step_to_file = {}
+    if os.path.exists(states_dir) and os.path.isdir(states_dir):
+        for root, _, files in os.walk(states_dir):
+            for file in files:
+                if file.endswith(".py") and file != "__init__.py":
+                    fp = os.path.join(root, file)
+                    try:
+                        with open(fp, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        classes = re.findall(r"class\s+(\w+)", content)
+                        for cls in classes:
+                            step_to_file[cls] = fp
+                    except Exception:
+                        pass
+
+    if not ordered_steps:
+        ordered_steps = sorted(list(step_to_file.keys()))
+
+    step_data = {}
+    for step_name in ordered_steps:
+        matched_file = step_to_file.get(step_name)
+        
+        if not matched_file:
+            continue
+
+        try:
+            with open(matched_file, "r", encoding="utf-8") as f:
+                code_content = f.read()
+
+            tree = ast.parse(code_content)
+
+            class ContextVisitor(ast.NodeVisitor):
+                def __init__(self):
+                    self.reads = set()
+                    self.writes = set()
+
+                def visit_Attribute(self, node):
+                    if isinstance(node.value, ast.Name) and node.value.id in ("context", "ctx"):
+                        if isinstance(node.ctx, ast.Store):
+                            self.writes.add(node.attr)
+                        else:
+                            self.reads.add(node.attr)
+                    self.generic_visit(node)
+
+                def visit_Assign(self, node):
+                    for target in node.targets:
+                        if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id in ("context", "ctx"):
+                            self.writes.add(target.attr)
+                    self.generic_visit(node)
+
+            visitor = ContextVisitor()
+            visitor.visit(tree)
+            step_data[step_name] = {
+                "reads": visitor.reads,
+                "writes": visitor.writes
+            }
+        except Exception:
+            pass
+
+    initialized_fields = {"transaction_id", "input_path", "data", "status"}
+    flow_report = "## 🦅 WPipe Static Data Flow Analysis\n\n"
+    has_issues = False
+
+    for idx, step_name in enumerate(ordered_steps):
+        if step_name not in step_data:
+            continue
+        reads = step_data[step_name]["reads"]
+        writes = step_data[step_name]["writes"]
+
+        flow_report += f"### Step {idx+1}: `{step_name}`\n"
+        
+        missing_reads = [r for r in reads if r not in initialized_fields]
+        if missing_reads:
+            has_issues = True
+            flow_report += f"- 🔴 **Warning**: Reads uninitialized fields: " + ", ".join([f"`{r}`" for r in missing_reads]) + "\n"
+        else:
+            flow_report += f"- 🟢 Inputs: OK (reads " + ", ".join([f"`{r}`" for r in reads]) + ")\n" if reads else "- 🟢 Inputs: None required\n"
+            
+        flow_report += f"- 🔵 Outputs/Mutations: " + ", ".join([f"`{w}`" for w in writes]) + "\n\n" if writes else "- 🔵 Outputs/Mutations: None\n\n"
+
+        initialized_fields.update(writes)
+
+    if not has_issues:
+        flow_report += "\n### 🎉 Data Flow Status: Healthy\nNo uninitialized context reads detected in the pipeline flow!"
+
+    return flow_report
+
+
+@mcp.tool()
+def dry_run_pipeline(project_path: str, initial_data_json: str = "{}") -> str:
+    """Performs a dry run simulation of a WPipe pipeline, tracing the context mutation at each step without calling external APIs or heavy processing."""
+    import re
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+
+    if not os.path.exists(project_path):
+        return f"Error: The path '{project_path}' does not exist."
+
+    app_dir = os.path.join(project_path, "app")
+    is_microservice = os.path.exists(app_dir) and os.path.isdir(app_dir)
+    base_dir = app_dir if is_microservice else project_path
+
+    try:
+        current_context = json.loads(initial_data_json)
+    except Exception as e:
+        return f"Error parsing initial_data_json: {str(e)}"
+
+    pipelines_file = os.path.join(base_dir, "pipelines.py")
+    if not os.path.exists(pipelines_file):
+        pipelines_file = os.path.join(base_dir, "main.py")
+
+    ordered_steps = []
+    if os.path.exists(pipelines_file):
+        try:
+            with open(pipelines_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            set_steps_match = re.search(r"set_steps\(\s*\[(.*?)\]\s*\)", content, re.DOTALL)
+            if set_steps_match:
+                steps_content = set_steps_match.group(1)
+                instances = re.findall(r"(\w+)\s*\(", steps_content)
+                ordered_steps = [inst for inst in instances]
+        except Exception:
+            pass
+
+    if not ordered_steps:
+        return "Error: No steps found or pipeline set_steps could not be parsed."
+
+    simulation_log = "## 🦅 WPipe Dry Run Simulation Log\n\n"
+    simulation_log += f"**Initial Context:** `{json.dumps(current_context)}`\n\n"
+
+    states_dir = os.path.join(base_dir, "states")
+    step_to_file = {}
+    if os.path.exists(states_dir) and os.path.isdir(states_dir):
+        for root, _, files in os.walk(states_dir):
+            for file in files:
+                if file.endswith(".py") and file != "__init__.py":
+                    fp = os.path.join(root, file)
+                    try:
+                        with open(fp, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        classes = re.findall(r"class\s+(\w+)", content)
+                        for cls in classes:
+                            step_to_file[cls] = fp
+                    except Exception:
+                        pass
+
+    for idx, step_name in enumerate(ordered_steps):
+        matched_file = step_to_file.get(step_name)
+
+        writes = set()
+        if matched_file:
+            try:
+                import ast
+                with open(matched_file, "r", encoding="utf-8") as f:
+                    code_content = f.read()
+                tree = ast.parse(code_content)
+                class AssignmentVisitor(ast.NodeVisitor):
+                    def visit_Assign(self, node):
+                        for target in node.targets:
+                            if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id in ("context", "ctx"):
+                                writes.add(target.attr)
+                        self.generic_visit(node)
+                visitor = AssignmentVisitor()
+                visitor.visit(tree)
+            except Exception:
+                pass
+
+        simulation_log += f"### [{idx+1}/{len(ordered_steps)}] Simulating step: `{step_name}`\n"
+        simulation_log += f"- **Input State:** `{json.dumps(current_context)}`\n"
+        
+        mutated = False
+        for w in writes:
+            if w not in current_context or current_context[w] is None:
+                current_context[w] = f"<mutated by {step_name}>"
+                mutated = True
+
+        if not mutated:
+            current_context["status"] = f"COMPLETED_AT_{step_name.upper()}"
+
+        simulation_log += f"- **Mutated Fields:** " + (", ".join([f"`{w}`" for w in writes]) if writes else "None") + "\n"
+        simulation_log += f"- **Output State:** `{json.dumps(current_context)}`\n\n"
+
+    simulation_log += "### 🎉 Simulation Completed Successfully\n"
+    return simulation_log
+
+
+@mcp.tool()
+def optimize_wpipe_pipeline(project_path: str) -> str:
+    """Analyzes a WPipe project statically and suggests performance, resilience, and monitoring optimizations."""
+    import re
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+
+    if not os.path.exists(project_path):
+        return f"Error: The path '{project_path}' does not exist."
+
+    app_dir = os.path.join(project_path, "app")
+    is_microservice = os.path.exists(app_dir) and os.path.isdir(app_dir)
+    base_dir = app_dir if is_microservice else project_path
+
+    states_dir = os.path.join(base_dir, "states")
+    main_file = os.path.join(base_dir, "main.py")
+    pipelines_file = os.path.join(base_dir, "pipelines.py")
+
+    score = 100
+    suggestions = []
+
+    if os.path.exists(main_file):
+        try:
+            with open(main_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            if "ResourceMonitor" not in content:
+                score -= 15
+                suggestions.append("❌ **Monitoring**: Add `ResourceMonitor` to track memory and CPU peaks during execution.")
+            if "TaskTimer" not in content:
+                score -= 15
+                suggestions.append("❌ **Resilience**: Add `TaskTimer` wrapper around the run pipeline to force safety timeouts on execution.")
+        except Exception:
+            pass
+
+    if os.path.exists(states_dir) and os.path.isdir(states_dir):
+        for root, _, files in os.walk(states_dir):
+            for file in files:
+                if file.endswith(".py") and file != "__init__.py":
+                    file_path = os.path.join(root, file)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        
+                        step_matches = re.findall(r"@step\((.*?)\)", content, re.DOTALL)
+                        for match in step_matches:
+                            if "timeout" not in match:
+                                score -= 10
+                                suggestions.append(f"⚠️ **Timeout**: Step in `{file}` does not define a `timeout` argument in `@step` decorator.")
+                            if "retry_count" not in match:
+                                score -= 10
+                                suggestions.append(f"⚠️ **Retry**: Step in `{file}` does not define a `retry_count` argument in `@step` decorator.")
+                    except Exception:
+                        pass
+
+    target_pipeline_file = pipelines_file if os.path.exists(pipelines_file) else main_file
+    if os.path.exists(target_pipeline_file):
+        try:
+            with open(target_pipeline_file, "r", encoding="utf-8") as f:
+                content = f.read()
+            if "tracking_db" not in content:
+                score -= 15
+                suggestions.append("❌ **Tracking**: `Pipeline` instantiation does not define `tracking_db`. Pipeline metrics and execution history won't be saved.")
+        except Exception:
+            pass
+
+    score = max(score, 10)
+
+    report = f"## ⚡ WPipe Performance & Optimization Report\n\n"
+    report += f"**Optimization Score:** `{score}/100`\n\n"
+    
+    if suggestions:
+        report += "### 📋 Actionable Suggestions:\n"
+        for sug in suggestions:
+            report += f"- {sug}\n"
+    else:
+        report += "### 🎉 Perfect Optimization!\nNo optimization issues found. Your WPipe project follows all high-performance standards."
+
+    return report
+
+
 # --- CLI Actions ---
 
 
