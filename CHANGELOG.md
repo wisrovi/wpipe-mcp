@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1] - 2026-08-13
+
+### Fixed
+- Blueprints `\\n` literal strings replaced with real newlines (readable output).
+- Ruff lint clean (`src/` and `tests/`): F403 in `src/__init__.py`, E722 bare `except` in `catalog.py`.
+- Added test suite (13 tests) covering blueprints, manual, search, scaffolding, and CLI.
+- Added `Makefile` with `make publish` for PyPI releases.
+
 ## [0.3.0] - 2026-06-08
 
 ### Added

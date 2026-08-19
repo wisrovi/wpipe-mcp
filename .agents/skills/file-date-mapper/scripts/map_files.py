@@ -97,7 +97,7 @@ def main():
 
     in_range = sum(1 for m in mapping if m["en_rango_fechas"] == "TRUE")
 
-    print(f"\n✅ Complete!")
+    print("\n✅ Complete!")
     print(f"   Total files: {len(mapping)}")
     print(f"   In range: {in_range}")
     print(f"   CSV: {args.output}")
