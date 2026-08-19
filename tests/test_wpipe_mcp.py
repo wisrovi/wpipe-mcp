@@ -180,3 +180,37 @@ def test_document_wpipe_project(tmp_path):
     assert "## 🦅 WPipe Execution Flow" in content
     assert "<!-- WPIPE_FLOW_START -->" in content
     assert "<!-- WPIPE_FLOW_END -->" in content
+
+
+def test_refactor_monolith_to_wpipe(tmp_path):
+    # Create a mock monolith
+    monolith = tmp_path / "monolith.py"
+    monolith.write_text(
+        "def load_images(batch_size, folder_path):\n"
+        "    return []\n\n"
+        "def run_prediction(model_weights, image_list):\n"
+        "    return {}\n"
+    )
+    
+    target = str(tmp_path / "refactored")
+    result = server.refactor_monolith_to_wpipe(str(monolith), target)
+    assert result.startswith("Success:")
+    
+    # Check that app folders and files were created
+    assert (tmp_path / "refactored" / "app" / "dto" / "context.py").exists()
+    assert (tmp_path / "refactored" / "app" / "states" / "step_0_load_images.py").exists()
+    assert (tmp_path / "refactored" / "app" / "states" / "step_1_run_prediction.py").exists()
+    assert (tmp_path / "refactored" / "app" / "pipelines.py").exists()
+    assert (tmp_path / "refactored" / "app" / "main.py").exists()
+    
+    # Check DTO contains extracted args
+    dto_content = (tmp_path / "refactored" / "app" / "dto" / "context.py").read_text()
+    assert "batch_size" in dto_content
+    assert "folder_path" in dto_content
+    assert "model_weights" in dto_content
+    assert "image_list" in dto_content
+    
+    # Check README has generated flow
+    readme_content = (tmp_path / "refactored" / "README.md").read_text()
+    assert "LoadImagesStep" in readme_content
+    assert "RunPredictionStep" in readme_content
