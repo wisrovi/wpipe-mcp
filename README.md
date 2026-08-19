@@ -1,6 +1,6 @@
 # 🦅 wpipe-mcp
 
-[![Version](https://img.shields.io/badge/version-0.3.2-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-1.0-orange.svg)](https://modelcontextprotocol.io)
 
@@ -17,6 +17,10 @@
 - **🛡️ Project Architectural Validation**: Verify that any existing code structure complies with the WPipe standards using `validate_wpipe_project` to check directories, step decorators, and context schemas.
 - **⚙️ Automated Monolith Refactoring**: Automatically split monolithic Python scripts into modular class-based WPipe steps (`@step`) and shared contexts with `refactor_monolith_to_wpipe`.
 - **📊 Automatic Pipeline Documentation**: Generate complete Mermaid DAG flowcharts and technical markdown specifications directly in the project's root `README.md` with `document_wpipe_project`.
+- **🧪 Unit Test Generation**: Instantly build boilerplate test files with extensive English descriptions using `generate_wpipe_tests`.
+- **🔍 Static Context Data Flow Analysis**: Statically verify that data fields passed and consumed across steps are valid with `validate_context_flow`.
+- **⚙️ Pipeline Dry Run Simulation**: Simulate pipeline runs to trace context states without invoking heavy models/APIs using `dry_run_pipeline`.
+- **⚡ Performance & Monitoring Optimization**: Statically inspect compliance scores and receive actionable recommendations using `optimize_wpipe_pipeline`.
 - **📘 Architect's Manual**: Built-in expertise for Monolith-to-Pipeline refactoring, performance tracking, and resilient state management.
 - **💻 Unified CLI**: Manage your MCP service with simple commands: `run`, `start`, `stop`, and `config`.
 - **🔒 Privacy First**: 100% local execution via `stdio` or `SSE`.
