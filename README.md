@@ -1,6 +1,6 @@
 # 🦅 wpipe-mcp
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
+[![Version](https://img.shields.io/badge/version-0.3.2-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-1.0-orange.svg)](https://modelcontextprotocol.io)
 
