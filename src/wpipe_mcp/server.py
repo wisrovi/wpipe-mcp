@@ -11,9 +11,7 @@ from wpipe_mcp.templates import TemplateGenerator
 
 # Setup logging strictly to stderr to avoid breaking MCP protocol
 logging.basicConfig(
-    level=logging.INFO, 
-    format='%(levelname)s: %(message)s',
-    stream=sys.stderr
+    level=logging.INFO, format="%(levelname)s: %(message)s", stream=sys.stderr
 )
 logger = logging.getLogger(__name__)
 
@@ -22,7 +20,8 @@ PID_FILE = os.path.expanduser("~/.wpipe_mcp.pid")
 
 # Create the primary FastMCP Server instance
 mcp = FastMCP("wpipe-mcp-server")
-catalog = None # Lazy initialization
+catalog = None  # Lazy initialization
+
 
 def get_catalog():
     global catalog
@@ -30,72 +29,75 @@ def get_catalog():
         catalog = StepsCatalog()
     return catalog
 
+
 # --- Tools ---
+
 
 @mcp.tool()
 def get_wpipe_architect_blueprints() -> str:
     """Provides expert code blueprints for high-performance WPipe States and Pipelines."""
     state_code = (
-        "from wpipe import step, to_obj\\n"
-        "from wpipe.timeout import timeout_sync\\n"
-        "from typing import Any\\n"
-        "from pydantic import BaseModel\\n\\n"
-        "class MyContext(BaseModel):\\n"
-        "    field: str\\n\\n"
-        "@step(\\n"
-        "    name=\"MyStep\",\\n"
-        "    version=\"v1.0\",\\n"
-        "    timeout=10,\\n"
-        "    description=\"Step description\",\\n"
-        "    tags=[\"custom\"],\\n"
-        "    retry_count=3,\\n"
-        "    retry_delay=0.01,\\n"
-        ")\\n"
-        "class MyStep:\\n"
-        "    def __init__(self, config: str = \"value\"):\\n"
-        "        self.config = config\\n\\n"
-        "    @timeout_sync(seconds=2)\\n"
-        "    @to_obj(MyContext)\\n"
-        "    def __call__(self, context: Any) -> Any:\\n"
-        "        # Professional logic here\\n"
-        "        print(f\"🚀 Executing with config: {self.config}\")\\n"
-        "        return context\\n"
+        "from wpipe import step, to_obj\n"
+        "from wpipe.timeout import timeout_sync\n"
+        "from typing import Any\n"
+        "from pydantic import BaseModel\n\n"
+        "class MyContext(BaseModel):\n"
+        "    field: str\n\n"
+        "@step(\n"
+        '    name="MyStep",\n'
+        '    version="v1.0",\n'
+        "    timeout=10,\n"
+        '    description="Step description",\n'
+        '    tags=["custom"],\n'
+        "    retry_count=3,\n"
+        "    retry_delay=0.01,\n"
+        ")\n"
+        "class MyStep:\n"
+        '    def __init__(self, config: str = "value"):\n'
+        "        self.config = config\n\n"
+        "    @timeout_sync(seconds=2)\n"
+        "    @to_obj(MyContext)\n"
+        "    def __call__(self, context: Any) -> Any:\n"
+        "        # Professional logic here\n"
+        '        print(f"🚀 Executing with config: {self.config}")\n'
+        "        return context\n"
     )
-    
+
     pipeline_code = (
-        "from wdecorators import time_execution\\n"
-        "from wpipe import Pipeline, ResourceMonitor, TaskTimer\\n"
-        "from wpipe.exception.api_error import ProcessError\\n\\n"
-        "def run_pipeline():\\n"
-        "    pipeline = Pipeline(\\n"
-        "        pipeline_name=\"professional_pipeline\",\\n"
-        "        pipeline_version=\"1.0.0\",\\n"
-        "        tracking_db=\"output/tracking.db\",\\n"
-        "        collect_system_metrics=True,\\n"
-        "        show_progress=True,\\n"
-        "        max_retries=3,\\n"
-        "        retry_delay=0.5\\n"
-        "    )\\n\\n"
-        "    pipeline.set_steps([step_1])\\n\\n"
-        "    if __name__ == \"__main__\":\\n"
-        "        try:\\n"
-        "            with ResourceMonitor(\"my_monitor\") as monitor:\\n"
-        "                with TaskTimer(\"my_timer\", timeout_seconds=900) as timer:\\n"
-        "                    @time_execution\\n"
-        "                    def run():\\n"
-        "                        return pipeline.run({{\"data\": \"init\"}})\\n"
-        "                    run()\\n"
-        "            summary = monitor.get_summary()\\n"
-        "            print(f\"Peak RAM: {summary['peak_ram_mb']} MB\")\\n"
-        "        except ProcessError as e:\\n"
-        "            print(f\"Error: {e}\")\\n"
+        "from wdecorators import time_execution\n"
+        "from wpipe import Pipeline, ResourceMonitor, TaskTimer\n"
+        "from wpipe.exception.api_error import ProcessError\n\n"
+        "def run_pipeline():\n"
+        "    pipeline = Pipeline(\n"
+        '        pipeline_name="professional_pipeline",\n'
+        '        pipeline_version="1.0.0",\n'
+        '        tracking_db="output/tracking.db",\n'
+        "        collect_system_metrics=True,\n"
+        "        show_progress=True,\n"
+        "        max_retries=3,\n"
+        "        retry_delay=0.5\n"
+        "    )\n\n"
+        "    pipeline.set_steps([step_1])\n\n"
+        '    if __name__ == "__main__":\n'
+        "        try:\n"
+        '            with ResourceMonitor("my_monitor") as monitor:\n'
+        '                with TaskTimer("my_timer", timeout_seconds=900) as timer:\n'
+        "                    @time_execution\n"
+        "                    def run():\n"
+        '                        return pipeline.run({"data": "init"})\n'
+        "                    run()\n"
+        "            summary = monitor.get_summary()\n"
+        "            print(f\"Peak RAM: {summary['peak_ram_mb']} MB\")\n"
+        "        except ProcessError as e:\n"
+        '            print(f"Error: {e}")\n'
     )
-    
+
     return (
-        "WPIPE EXPERT BLUEPRINTS\\n\\n"
-        "### 1. Advanced State Pattern:\\n" + state_code + "\\n\\n"
-        "### 2. High-Performance Pipeline Pattern:\\n" + pipeline_code
+        "WPIPE EXPERT BLUEPRINTS\n\n"
+        "### 1. Advanced State Pattern:\n" + state_code + "\n\n"
+        "### 2. High-Performance Pipeline Pattern:\n" + pipeline_code
     )
+
 
 @mcp.tool()
 def search_wpipe_step(query: str) -> str:
@@ -103,16 +105,24 @@ def search_wpipe_step(query: str) -> str:
     results = get_catalog().search(query)
     if not results:
         return f"No custom step matching '{query}' was found. Recommend building a native WPipe Class-based Step."
-    
+
     response = "Found production-ready architectural steps in wisrovi SUITE:\n\n"
     for s in results:
-        response += f"🚀 [{s.get('origin', 'Unknown')}] {s.get('func_name', s.get('label'))}\n"
+        response += (
+            f"🚀 [{s.get('origin', 'Unknown')}] {s.get('func_name', s.get('label'))}\n"
+        )
         response += f"   - Description: {s.get('description', 'N/A')}\n"
         response += f"   - Namespace: {s.get('namespace', 'N/A')}\n\n"
     return response
 
+
 @mcp.tool()
-def deploy_wpipe_scaffolding(target_dir: str, project_name: str = "wpipe_project", pipeline_type: str = "standard") -> str:
+def deploy_wpipe_scaffolding(
+    target_dir: str,
+    project_name: str = "wpipe_project",
+    pipeline_type: str = "standard",
+    include_tests: bool = True,
+) -> str:
     """Deploys a professional WPipe project structure with class-based states."""
     try:
         if not os.path.isabs(target_dir):
@@ -121,7 +131,9 @@ def deploy_wpipe_scaffolding(target_dir: str, project_name: str = "wpipe_project
         for folder in TemplateGenerator.get_folders(pipeline_type):
             os.makedirs(os.path.join(target_dir, folder), exist_ok=True)
 
-        blueprints = TemplateGenerator.get_files_blueprint(pipeline_type, project_name)
+        blueprints = TemplateGenerator.get_files_blueprint(
+            pipeline_type, project_name, include_tests
+        )
         for rel_path, content in blueprints.items():
             full_path = os.path.join(target_dir, rel_path)
             os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -132,20 +144,32 @@ def deploy_wpipe_scaffolding(target_dir: str, project_name: str = "wpipe_project
     except Exception as e:
         return f"Error: {str(e)}"
 
+
 @mcp.tool()
 def get_wpipe_architect_manual() -> str:
     """Expert manual for building high-performance pipelines (wisrovi standard)."""
     return (
         "WPIPE ARCHITECT MANUAL (ADVANCED)\n"
         "--- PROJECT STRUCTURE RULES (MANDATORY) ---\n"
-        "1. DTOs: All Pydantic BaseModel classes (Contexts) MUST be placed inside a `dto/` directory. Create one file per class (e.g., `dto/my_context.py`).\n"
-        "2. STATES: All WPipe Step classes MUST be placed inside a `states/` directory. Create one file per step (e.g., `states/my_step.py`), and populate `states/__init__.py` to export them.\n"
-        "3. PIPELINE: The orchestrator script MUST be placed in `main.py` at the root level, importing DTOs and States.\n\n"
+        "1. DTOs: All Pydantic BaseModel classes (Contexts) MUST be placed inside a `dto/` directory (or `app/dto/` in microservices). Create one file per class (e.g., `dto/my_context.py`).\n"
+        "2. STATES: All WPipe Step classes MUST be placed inside a `states/` directory (or `app/states/` in microservices). Create one file per step (e.g., `states/my_step.py`), and populate `states/__init__.py` to export them.\n"
+        "3. PIPELINE: The orchestrator script MUST be placed in `main.py` at the root level (or `app/main.py` and `app/pipelines.py` in microservices).\n\n"
+        "--- MICROSERVICE INTERNAL STRUCTURE (app/ layout) ---\n"
+        "For dockerized microservices, the following internal structure inside the `app/` directory is mandatory:\n"
+        "- app/config/: Variable configurations unique to the microservice (config.yaml, settings.py) extending global parameters.\n"
+        "- app/dto/: Pydantic BaseModel context schemas guaranteeing strict typing and DAG context validation.\n"
+        "- app/model/: Pre-trained models (pt, joblib, onnx) loaded on boot or lazy-loaded.\n"
+        "- app/services/: Core heavy processing/inference services decoupled from the state machine.\n"
+        "- app/states/: WPipe Step classes (decorated with @step) invoking the services and mutating the Context.\n"
+        "- app/test/: pytest unit tests. Note: Always ask the user before generating these test files.\n"
+        "- app/utils/: Pure utility helper functions.\n"
+        "- app/pipelines.py: Declarative construction and assembly of state machine pipelines/graphs.\n"
+        "- app/main.py: Entrypoint starting the event listener, running the pipeline, and outputting/routing results.\n\n"
         "--- CORE RULES ---\n"
         "1. Prefer Class-based States (@step) for complex logic.\n"
         "2. Contexts must inherit from pydantic.BaseModel for strong typing.\n"
         "3. Use @timeout_sync(seconds=N) and @to_obj(ContextClass) on __call__.\n"
-        "4. Always use tracking_db=\"path/to/db\" for forensics and metrics.\n"
+        '4. Always use tracking_db="path/to/db" for forensics and metrics.\n'
         "5. Wrap execution in ResourceMonitor and TaskTimer context managers.\n"
         "6. Use @time_execution decorator from wdecorators for performance tracking.\n"
         "7. Configure max_retries and retry_delay at both Step and Pipeline levels.\n\n"
@@ -159,15 +183,120 @@ def get_wpipe_architect_manual() -> str:
         "Step 6: Generate a professional, intuitive, and modern `README.md` (in English) documenting what the newly created pipeline does. You MUST include a Mermaid flowchart diagram (`mermaid`) illustrating the pipeline's execution flow and steps. Also, you MUST include a footer or header stating: 'Generated by WPipe MCP by wisrovi'."
     )
 
+
+@mcp.tool()
+def validate_wpipe_project(project_path: str) -> str:
+    """Validates if a local project complies with the official WPipe architecture structure (standard or microservice app/ layout)."""
+    import re
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+
+    if not os.path.exists(project_path):
+        return f"Error: The path '{project_path}' does not exist."
+
+    issues = []
+    successes = []
+    
+    app_dir = os.path.join(project_path, "app")
+    is_microservice = os.path.exists(app_dir) and os.path.isdir(app_dir)
+
+    base_dir = app_dir if is_microservice else project_path
+    layout_name = "Microservice app/ layout" if is_microservice else "Standard layout"
+    
+    main_file = os.path.join(base_dir, "main.py")
+    if not os.path.exists(main_file):
+        issues.append(f"❌ Missing core entrypoint: 'main.py' not found in {base_dir}.")
+    else:
+        successes.append(f"✅ Found main entrypoint: 'main.py' in {base_dir}.")
+
+    if is_microservice:
+        pipelines_file = os.path.join(base_dir, "pipelines.py")
+        if not os.path.exists(pipelines_file):
+            issues.append("❌ Missing declarative pipelines assembly: 'pipelines.py' not found in app/.")
+        else:
+            successes.append("✅ Found declarative pipelines: 'pipelines.py' in app/.")
+
+    required_dirs = ["dto", "states"]
+    for d in required_dirs:
+        dir_path = os.path.join(base_dir, d)
+        if not os.path.exists(dir_path) or not os.path.isdir(dir_path):
+            issues.append(f"❌ Missing mandatory directory: '{d}/' not found in {base_dir}.")
+        else:
+            successes.append(f"✅ Found directory: '{d}/' in {base_dir}.")
+
+    if is_microservice:
+        optional_dirs = ["config", "model", "services", "utils", "test"]
+        for d in optional_dirs:
+            dir_path = os.path.join(base_dir, d)
+            if not os.path.exists(dir_path) or not os.path.isdir(dir_path):
+                issues.append(f"⚠️ Recommendation: Optional directory '{d}/' not found in app/.")
+            else:
+                successes.append(f"✅ Found optional directory: '{d}/' in app/.")
+
+    step_decorator_regex = re.compile(r"@step\s*\(")
+    base_model_regex = re.compile(r"class\s+\w+\s*\(\s*BaseModel\s*\)")
+
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in (".git", ".venv", "venv", "__pycache__", "build", "dist", ".mypy_cache", ".pytest_cache")]
+        for file in files:
+            if not file.endswith(".py"):
+                continue
+            
+            full_file_path = os.path.join(root, file)
+            rel_file_path = os.path.relpath(full_file_path, project_path)
+            
+            try:
+                with open(full_file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                
+                if step_decorator_regex.search(content):
+                    norm_root = os.path.normpath(root)
+                    rel_to_base = os.path.relpath(norm_root, base_dir)
+                    if rel_to_base.split(os.sep)[0] != "states":
+                        issues.append(f"❌ Architectural violation: WPipe '@step' class defined in '{rel_file_path}' outside of the states/ directory.")
+                
+                if base_model_regex.search(content):
+                    norm_root = os.path.normpath(root)
+                    rel_to_base = os.path.relpath(norm_root, base_dir)
+                    first_part = rel_to_base.split(os.sep)[0]
+                    if first_part not in ("dto", "config"):
+                        issues.append(f"❌ Architectural violation: Pydantic 'BaseModel' defined in '{rel_file_path}' outside of the dto/ or config/ directory.")
+            except Exception:
+                pass
+
+    report = "## WPipe Project Architectural Report\n"
+    report += f"**Detected Layout:** {layout_name}\n"
+    report += f"**Validated Path:** `{project_path}`\n\n"
+    
+    if issues:
+        report += "### 🔴 Compliance Issues & Warnings:\n"
+        for issue in issues:
+            report += f"- {issue}\n"
+        report += "\n"
+    else:
+        report += "### 🎉 Compliance Status: Fully Compliant\n"
+        report += "No architectural violations or missing directories were found!\n\n"
+
+    if successes:
+        report += "### 🟢 Verified Components:\n"
+        for success in successes:
+            report += f"- {success}\n"
+
+    return report
+
+
 # --- CLI Actions ---
+
 
 def run_stdio():
     """Runs the MCP server in stdio mode (standard for agents)."""
     mcp.run(transport="stdio")
 
+
 def run_sse():
     """Runs the MCP server in SSE mode."""
     mcp.run(transport="sse")
+
 
 def start_background():
     """Starts the SSE server in the background."""
@@ -175,17 +304,18 @@ def start_background():
         print("Server is already running or PID file exists.")
         return
 
-    # In a real scenario, we would use a proper daemon library, 
+    # In a real scenario, we would use a proper daemon library,
     # but for simplicity, we use subprocess.
     proc = subprocess.Popen(
         [sys.executable, "-m", "wpipe_mcp.server", "run-sse"],
         stdout=open(os.path.expanduser("~/wpipe_mcp.log"), "a"),
         stderr=subprocess.STDOUT,
-        preexec_fn=os.setpgrp
+        preexec_fn=os.setpgrp,
     )
     with open(PID_FILE, "w") as f:
         f.write(str(proc.pid))
     print(f"wpipe-mcp started in background (SSE mode) with PID {proc.pid}")
+
 
 def stop_background():
     """Stops the background SSE server."""
@@ -195,7 +325,7 @@ def stop_background():
 
     with open(PID_FILE, "r") as f:
         pid = int(f.read())
-    
+
     try:
         os.kill(pid, signal.SIGTERM)
         print(f"Stopped server with PID {pid}")
@@ -203,6 +333,7 @@ def stop_background():
         print("Process not found.")
     finally:
         os.remove(PID_FILE)
+
 
 def print_config(write_file: bool = True):
     """Prints or saves the JSON configuration for agents."""
@@ -212,7 +343,7 @@ def print_config(write_file: bool = True):
             "wpipe-mcp": {
                 "command": python_path,
                 "args": ["-m", "wpipe_mcp.server", "run"],
-                "env": {}
+                "env": {},
             }
         }
     }
@@ -239,23 +370,34 @@ def print_config(write_file: bool = True):
     target_dir = os.getcwd()
     agents_dir = os.path.join(target_dir, ".agents")
     os.makedirs(agents_dir, exist_ok=True)
-    
+
     config_path = os.path.join(agents_dir, "wpipe-mcp.json")
     with open(config_path, "w") as f:
         f.write(config_json)
-    
+
     print(f"✅ Configuration saved to: {config_path}")
     print(helper_text)
 
+
 # --- Main Entry Point ---
 
+
 def main():
-    parser = argparse.ArgumentParser(description="wpipe-mcp: WPipe Architect MCP Server")
-    parser.add_argument("command", nargs="?", default="run", 
-                        choices=["run", "run-sse", "start", "stop", "config", "help"],
-                        help="Command to execute (default: run)")
-    parser.add_argument("--print", action="store_true", 
-                        help="Print configuration to stdout instead of saving to .agents/")
+    parser = argparse.ArgumentParser(
+        description="wpipe-mcp: WPipe Architect MCP Server"
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="run",
+        choices=["run", "run-sse", "start", "stop", "config", "help"],
+        help="Command to execute (default: run)",
+    )
+    parser.add_argument(
+        "--print",
+        action="store_true",
+        help="Print configuration to stdout instead of saving to .agents/",
+    )
 
     args = parser.parse_args()
 
@@ -264,7 +406,6 @@ def main():
         logging.getLogger().setLevel(logging.ERROR)
         print_config(write_file=not args.print)
         return
-
 
     if args.command == "run":
         run_stdio()
@@ -280,6 +421,7 @@ def main():
         parser.print_help()
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()
