@@ -285,6 +285,170 @@ def validate_wpipe_project(project_path: str) -> str:
     return report
 
 
+@mcp.tool()
+def document_wpipe_project(project_path: str, write_to_readme: bool = True) -> str:
+    """Inspects a WPipe project and generates flow charts (Mermaid DAG) and technical documentation tables, writing them to README.md."""
+    import re
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+
+    if not os.path.exists(project_path):
+        return f"Error: The path '{project_path}' does not exist."
+
+    app_dir = os.path.join(project_path, "app")
+    is_microservice = os.path.exists(app_dir) and os.path.isdir(app_dir)
+    base_dir = app_dir if is_microservice else project_path
+
+    # 1. Discover step metadata by reading files in states/
+    states_dir = os.path.join(base_dir, "states")
+    steps_metadata = {}
+    if os.path.exists(states_dir) and os.path.isdir(states_dir):
+        for root, _, files in os.walk(states_dir):
+            for file in files:
+                if not file.endswith(".py"):
+                    continue
+                file_path = os.path.join(root, file)
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                    
+                    matches = re.finditer(r"@step\s*\((.*?)\)\s*class\s+(\w+)", content, re.DOTALL)
+                    for m in matches:
+                        args_str, class_name = m.groups()
+                        metadata = {
+                            "name": class_name,
+                            "version": "1.0",
+                            "timeout": "N/A",
+                            "description": "N/A",
+                            "tags": [],
+                            "retry_count": "0",
+                            "retry_delay": "0",
+                        }
+                        
+                        for key in ["name", "version", "description"]:
+                            arg_match = re.search(rf'{key}\s*=\s*["\'](.*?)["\']', args_str)
+                            if arg_match:
+                                metadata[key] = arg_match.group(1)
+                                
+                        timeout_match = re.search(r'timeout\s*=\s*(\d+)', args_str)
+                        if timeout_match:
+                            metadata["timeout"] = f"{timeout_match.group(1)}s"
+                            
+                        retry_count_match = re.search(r'retry_count\s*=\s*(\d+)', args_str)
+                        if retry_count_match:
+                            metadata["retry_count"] = retry_count_match.group(1)
+                            
+                        retry_delay_match = re.search(r'retry_delay\s*=\s*([\d\.]+)', args_str)
+                        if retry_delay_match:
+                            metadata["retry_delay"] = f"{retry_delay_match.group(1)}s"
+                            
+                        tags_match = re.search(r'tags\s*=\s*\[(.*?)\]', args_str, re.DOTALL)
+                        if tags_match:
+                            tags_content = tags_match.group(1)
+                            tags = [t.strip().strip('"').strip("'") for t in tags_content.split(",") if t.strip()]
+                            metadata["tags"] = tags
+                            
+                        steps_metadata[class_name] = metadata
+                except Exception:
+                    pass
+
+    # 2. Trace step execution order from pipelines.py or main.py
+    pipelines_file = os.path.join(base_dir, "pipelines.py")
+    if not os.path.exists(pipelines_file):
+        pipelines_file = os.path.join(base_dir, "main.py")
+        
+    ordered_steps = []
+    if os.path.exists(pipelines_file):
+        try:
+            with open(pipelines_file, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            
+            set_steps_match = re.search(r"set_steps\(\s*\[(.*?)\]\s*\)", content, re.DOTALL)
+            if set_steps_match:
+                steps_content = set_steps_match.group(1)
+                instances = re.findall(r"(\w+)\s*\(", steps_content)
+                for inst in instances:
+                    if inst in steps_metadata:
+                        ordered_steps.append(inst)
+                    elif inst.endswith("Step"):
+                        ordered_steps.append(inst)
+        except Exception:
+            pass
+
+    if not ordered_steps:
+        ordered_steps = list(steps_metadata.keys())
+
+    # 3. Generate Markdown section
+    flow_md = "<!-- WPIPE_FLOW_START -->\n"
+    flow_md += "## 🦅 WPipe Execution Flow\n\n"
+    
+    if ordered_steps:
+        flow_md += "### 🔄 DAG Flowchart\n"
+        flow_md += "```mermaid\n"
+        flow_md += "graph TD\n"
+        flow_md += "    Start([Start]) --> Step_0\n"
+        for i, step_name in enumerate(ordered_steps):
+            meta = steps_metadata.get(step_name, {})
+            label = meta.get("name", step_name)
+            ver = meta.get("version", "1.0")
+            tags = ", ".join(meta.get("tags", []))
+            tags_str = f"<br/><i>{tags}</i>" if tags else ""
+            flow_md += f'    Step_{i}["{label} (v{ver}){tags_str}"]\n'
+            if i > 0:
+                flow_md += f"    Step_{i-1} --> Step_{i}\n"
+        flow_md += f"    Step_{len(ordered_steps)-1} --> End([End])\n\n"
+        flow_md += "    style Start fill:#f3f4f6,stroke:#d1d5db,stroke-width:2px;\n"
+        flow_md += "    style End fill:#f3f4f6,stroke:#d1d5db,stroke-width:2px;\n"
+        for i, step_name in enumerate(ordered_steps):
+            flow_md += f"    style Step_{i} fill:#dbeafe,stroke:#3b82f6,stroke-width:2px;\n"
+        flow_md += "```\n\n"
+        
+        flow_md += "### 📊 Technical Steps Specifications\n"
+        flow_md += "| Step Name | Version | Timeout | Retries | Description | Tags |\n"
+        flow_md += "| :--- | :--- | :--- | :--- | :--- | :--- |\n"
+        for step_name in ordered_steps:
+            meta = steps_metadata.get(step_name, {
+                "name": step_name, "version": "1.0", "timeout": "N/A",
+                "retry_count": "0", "retry_delay": "0",
+                "description": "N/A", "tags": []
+            })
+            tags = ", ".join([f"`{t}`" for t in meta.get("tags", [])])
+            desc = meta.get("description", "N/A")
+            retries = f"{meta.get('retry_count')} (delay: {meta.get('retry_delay')})"
+            flow_md += f"| `{meta.get('name')}` | {meta.get('version')} | {meta.get('timeout')} | {retries} | {desc} | {tags} |\n"
+    else:
+        flow_md += "*No active steps or pipelines detected to visualize.*\n"
+        
+    flow_md += "\n---\n*Generated by WPipe MCP by **wisrovi***\n"
+    flow_md += "<!-- WPIPE_FLOW_END -->"
+
+    if write_to_readme:
+        readme_path = os.path.join(project_path, "README.md")
+        if os.path.exists(readme_path):
+            try:
+                with open(readme_path, "r", encoding="utf-8") as f:
+                    readme_content = f.read()
+                
+                if "<!-- WPIPE_FLOW_START -->" in readme_content and "<!-- WPIPE_FLOW_END -->" in readme_content:
+                    pattern = re.compile(r"<!-- WPIPE_FLOW_START -->.*?<!-- WPIPE_FLOW_END -->", re.DOTALL)
+                    new_readme = pattern.sub(flow_md, readme_content)
+                else:
+                    new_readme = readme_content.rstrip() + "\n\n" + flow_md + "\n"
+                    
+                with open(readme_path, "w", encoding="utf-8") as f:
+                    f.write(new_readme)
+            except Exception as e:
+                return f"Error writing to README.md: {str(e)}"
+        else:
+            try:
+                with open(readme_path, "w", encoding="utf-8") as f:
+                    f.write(flow_md + "\n")
+            except Exception as e:
+                return f"Error creating README.md: {str(e)}"
+
+    return f"Success: Technical execution flow documented successfully.\n\n{flow_md}"
+
+
 # --- CLI Actions ---
 
 
