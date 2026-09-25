@@ -21,7 +21,9 @@
 - **🔍 Static Context Data Flow Analysis**: Statically verify that data fields passed and consumed across steps are valid with `validate_context_flow`.
 - **⚙️ Pipeline Dry Run Simulation**: Simulate pipeline runs to trace context states without invoking heavy models/APIs using `dry_run_pipeline`.
 - **⚡ Performance & Monitoring Optimization**: Statically inspect compliance scores and receive actionable recommendations using `optimize_wpipe_pipeline`.
+- **🏆 WPipe Quality Rules Enforcement**: Built-in rules for strict English, Google-style docstrings, type hinting (`mypy`), Pylint score >= 9.3, Dockerized `pytest` coverage (>80%), and Black/Isort formatting.
 - **📘 Architect's Manual**: Built-in expertise for Monolith-to-Pipeline refactoring, performance tracking, and resilient state management.
+
 - **💻 Unified CLI**: Manage your MCP service with simple commands: `run`, `start`, `stop`, and `config`.
 - **🔒 Privacy First**: 100% local execution via `stdio` or `SSE`.
 
