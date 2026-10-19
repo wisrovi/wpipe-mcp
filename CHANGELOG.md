@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2] - 2026-10-19
+
+### Added
+- **Mandatory `app/pipelines.py` Specification**: Fully documented and formalized the mandatory role of `pipelines.py` across WPipe microservice architectures in `get_wpipe_architect_manual()`.
+- **Declarative Pipeline Blueprint**: Added `Declarative Microservice Pipeline Pattern (app/pipelines.py)` in `get_wpipe_architect_blueprints()` illustrating inline step assembly with `pipeline.set_steps([...])` and typed execution helpers (`execute_<service>_pipeline()`).
+- **Enhanced Scaffolding Templates**: Updated microservice scaffolding template in `templates.py` to generate `app/pipelines.py` with standalone execution helpers and structured logging.
+
 ## [0.3.1] - 2026-08-13
 
 ### Fixed
