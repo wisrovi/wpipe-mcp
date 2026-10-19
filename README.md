@@ -8,6 +8,10 @@
 
 # 🦅 WPipe-MCP — Agentic Architecture & Orchestration Hub
 
+[![Version](https://img.shields.io/badge/version-0.4.2-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-1.0-orange.svg)](https://modelcontextprotocol.io)
+
 **Transform your AI Agents into expert WPipe Architects.**
 
 `wpipe-mcp` is a professional Model Context Protocol (MCP) server that bridges the gap between AI Agents (Claude, Gemini, OpenCode) and the **wisrovi SUITE**. It empowers agents to search, design, validate, and deploy high-performance pipelines following strict industry-standard patterns.
@@ -17,7 +21,8 @@
 ## ✨ Key Features
 
 - **🔍 Expert Catalog Search**: Query over 100+ production-ready steps from Official and Community registries.
-- **🏗️ Strict Architecture Enforcement**: Guides AI to output clean code using mandatory `dto/`, `states/`, and `main.py` folder structures, including the new internal microservice `app/` layout.
+- **🏗️ Strict Architecture Enforcement**: Guides AI to output clean code using mandatory `dto/`, `states/`, `pipelines.py`, and `main.py` folder structures, including the internal microservice `app/` layout.
+- **🚀 Declarative Pipeline Definition (`app/pipelines.py`)**: Dedicated specification and blueprint for standalone pipeline assembly with inline step instantiation (`set_steps([MyStep(), ...])`) and typed execution helper wrappers.
 - **🛡️ Project Architectural Validation**: Verify that any existing code structure complies with the WPipe standards using `validate_wpipe_project` to check directories, step decorators, and context schemas.
 - **⚙️ Automated Monolith Refactoring**: Automatically split monolithic Python scripts into modular class-based WPipe steps (`@step`) and shared contexts with `refactor_monolith_to_wpipe`.
 - **📊 Automatic Pipeline Documentation**: Generate complete Mermaid DAG flowcharts and technical markdown specifications directly in the project's root `README.md` with `document_wpipe_project`.
@@ -26,7 +31,7 @@
 - **⚙️ Pipeline Dry Run Simulation**: Simulate pipeline runs to trace context states without invoking heavy models/APIs using `dry_run_pipeline`.
 - **⚡ Performance & Monitoring Optimization**: Statically inspect compliance scores and receive actionable recommendations using `optimize_wpipe_pipeline`.
 - **🏆 WPipe Quality Rules Enforcement**: Built-in rules for strict English, Google-style docstrings, type hinting (`mypy`), Pylint score >= 9.3, Dockerized `pytest` coverage (>80%), and Black/Isort formatting.
-- **📘 Architect's Manual**: Built-in expertise for Monolith-to-Pipeline refactoring, performance tracking, and resilient state management.
+- **📘 Architect's Manual**: Built-in expertise for Monolith-to-Pipeline refactoring, performance tracking, resilient state management, and mandatory `app/pipelines.py` specifications.
 
 - **💻 Unified CLI**: Manage your MCP service with simple commands: `run`, `start`, `stop`, and `config`.
 - **🔒 Privacy First**: 100% local execution via `stdio` or `SSE`.
@@ -101,12 +106,12 @@ MIT License
 
 ---
 
-## 👤 Autor & Afiliación Oficial
+## 👤 Author & Official Affiliation
 
 * **William Steve Rodriguez Villamizar (Wisrovi)**
-* **Cargo:** Principal AI Engineer & Applied AI Solutions Architect | Scientific Researcher
+* **Role:** Principal AI Engineer & Applied AI Solutions Architect | Scientific Researcher
 * 📧 **Email:** [wisrovi.rodriguez@gmail.com](mailto:wisrovi.rodriguez@gmail.com)
-* 🌐 **Portal Oficial:** [wisrovi.dev](https://wisrovi.dev)
+* 🌐 **Official Website:** [wisrovi.dev](https://wisrovi.dev)
 * 💼 **LinkedIn:** [wisrovi-rodriguez](https://www.linkedin.com/in/wisrovi-rodriguez/)
 * 🆔 **ORCID:** [0009-0005-0710-1861](https://orcid.org/0009-0005-0710-1861)
 * 📦 **PyPI:** [pypi.org/user/wisrovi/](https://pypi.org/user/wisrovi/)
