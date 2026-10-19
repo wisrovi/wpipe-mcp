@@ -9,6 +9,9 @@ def test_blueprints_have_real_newlines():
     assert "WPIPE EXPERT BLUEPRINTS" in text
     assert "Advanced State Pattern" in text
     assert "High-Performance Pipeline Pattern" in text
+    assert "Declarative Microservice Pipeline Pattern (app/pipelines.py)" in text
+    assert "inference_pipeline.set_steps" in text
+    assert "execute_inference_pipeline" in text
     assert "\n" in text
     assert "\\n" not in text
 
@@ -17,6 +20,7 @@ def test_manual_contains_guides():
     text = server.get_wpipe_architect_manual()
     assert "WPIPE ARCHITECT MANUAL" in text
     assert "PROJECT STRUCTURE RULES" in text
+    assert "MANDATORY APP/PIPELINES.PY SPECIFICATION" in text
     assert "CORE RULES" in text
     assert "REFACTORING A MONOLITH TO WPIPE" in text
     assert "mermaid" in text
@@ -25,8 +29,18 @@ def test_manual_contains_guides():
 
 def test_search_wpipe_step_returns_results():
     results = [
-        {"origin": "Official", "func_name": "vision_yolo", "description": "YOLO vision step", "namespace": "wpipe_plugins.vision"},
-        {"origin": "Community", "func_name": "csv_reader", "description": "CSV reader step", "namespace": "wpipe_plugins"},
+        {
+            "origin": "Official",
+            "func_name": "vision_yolo",
+            "description": "YOLO vision step",
+            "namespace": "wpipe_plugins.vision",
+        },
+        {
+            "origin": "Community",
+            "func_name": "csv_reader",
+            "description": "CSV reader step",
+            "namespace": "wpipe_plugins",
+        },
     ]
     catalog_mock = mock.MagicMock()
     catalog_mock.search.return_value = results
@@ -53,7 +67,9 @@ def test_deploy_wpipe_scaffolding_relative_path_rejected():
 
 def test_deploy_wpipe_scaffolding_creates_project(tmp_path):
     target = str(tmp_path / "deployed")
-    result = server.deploy_wpipe_scaffolding(target, project_name="MyPipe", pipeline_type="standard")
+    result = server.deploy_wpipe_scaffolding(
+        target, project_name="MyPipe", pipeline_type="standard"
+    )
     assert result.startswith("Success:")
     assert "MyPipe" in result
     assert (tmp_path / "deployed" / "main.py").exists()
@@ -63,7 +79,9 @@ def test_deploy_wpipe_scaffolding_creates_project(tmp_path):
 
 def test_deploy_wpipe_scaffolding_exception_returns_error(tmp_path):
     target = str(tmp_path / "blocked")
-    with mock.patch.object(server.TemplateGenerator, "get_folders", side_effect=OSError("disk full")):
+    with mock.patch.object(
+        server.TemplateGenerator, "get_folders", side_effect=OSError("disk full")
+    ):
         text = server.deploy_wpipe_scaffolding(target)
     assert text == "Error: disk full"
 
@@ -110,7 +128,10 @@ def test_main_run_uses_stdio(monkeypatch):
 def test_deploy_wpipe_scaffolding_microservice_with_tests(tmp_path):
     target = str(tmp_path / "micro_with")
     result = server.deploy_wpipe_scaffolding(
-        target, project_name="MicroApp", pipeline_type="microservice", include_tests=True
+        target,
+        project_name="MicroApp",
+        pipeline_type="microservice",
+        include_tests=True,
     )
     assert result.startswith("Success:")
     assert (tmp_path / "micro_with" / "app" / "main.py").exists()
@@ -123,7 +144,10 @@ def test_deploy_wpipe_scaffolding_microservice_with_tests(tmp_path):
 def test_deploy_wpipe_scaffolding_microservice_without_tests(tmp_path):
     target = str(tmp_path / "micro_without")
     result = server.deploy_wpipe_scaffolding(
-        target, project_name="MicroApp", pipeline_type="microservice", include_tests=False
+        target,
+        project_name="MicroApp",
+        pipeline_type="microservice",
+        include_tests=False,
     )
     assert result.startswith("Success:")
     assert (tmp_path / "micro_without" / "app" / "main.py").exists()
@@ -145,17 +169,24 @@ def test_validate_wpipe_project_fully_compliant(tmp_path):
 def test_validate_wpipe_project_violations(tmp_path):
     target = str(tmp_path / "violating_project")
     server.deploy_wpipe_scaffolding(
-        target, project_name="ViolatingApp", pipeline_type="microservice", include_tests=True
+        target,
+        project_name="ViolatingApp",
+        pipeline_type="microservice",
+        include_tests=True,
     )
-    
+
     # 1. Add a @step file outside states
     wrong_step = tmp_path / "violating_project" / "app" / "utils" / "wrong_step.py"
-    wrong_step.write_text("from wpipe import step\n@step()\nclass WrongStep:\n    pass\n")
-    
+    wrong_step.write_text(
+        "from wpipe import step\n@step()\nclass WrongStep:\n    pass\n"
+    )
+
     # 2. Add a BaseModel file outside dto
     wrong_model = tmp_path / "violating_project" / "app" / "services" / "wrong_model.py"
-    wrong_model.write_text("from pydantic import BaseModel\nclass MyWrongModel(BaseModel):\n    pass\n")
-    
+    wrong_model.write_text(
+        "from pydantic import BaseModel\nclass MyWrongModel(BaseModel):\n    pass\n"
+    )
+
     report = server.validate_wpipe_project(target)
     assert "Architectural violation: WPipe '@step' class defined in" in report
     assert "Architectural violation: Pydantic 'BaseModel' defined in" in report
@@ -168,12 +199,12 @@ def test_document_wpipe_project(tmp_path):
     server.deploy_wpipe_scaffolding(
         target, project_name="DocApp", pipeline_type="microservice", include_tests=True
     )
-    
+
     report = server.document_wpipe_project(target, write_to_readme=True)
     assert "Success: Technical execution flow documented successfully." in report
     assert "InferenciaStep" in report
     assert "graph TD" in report
-    
+
     readme_file = tmp_path / "doc_project" / "README.md"
     assert readme_file.exists()
     content = readme_file.read_text()
@@ -191,25 +222,29 @@ def test_refactor_monolith_to_wpipe(tmp_path):
         "def run_prediction(model_weights, image_list):\n"
         "    return {}\n"
     )
-    
+
     target = str(tmp_path / "refactored")
     result = server.refactor_monolith_to_wpipe(str(monolith), target)
     assert result.startswith("Success:")
-    
+
     # Check that app folders and files were created
     assert (tmp_path / "refactored" / "app" / "dto" / "context.py").exists()
-    assert (tmp_path / "refactored" / "app" / "states" / "step_0_load_images.py").exists()
-    assert (tmp_path / "refactored" / "app" / "states" / "step_1_run_prediction.py").exists()
+    assert (
+        tmp_path / "refactored" / "app" / "states" / "step_0_load_images.py"
+    ).exists()
+    assert (
+        tmp_path / "refactored" / "app" / "states" / "step_1_run_prediction.py"
+    ).exists()
     assert (tmp_path / "refactored" / "app" / "pipelines.py").exists()
     assert (tmp_path / "refactored" / "app" / "main.py").exists()
-    
+
     # Check DTO contains extracted args
     dto_content = (tmp_path / "refactored" / "app" / "dto" / "context.py").read_text()
     assert "batch_size" in dto_content
     assert "folder_path" in dto_content
     assert "model_weights" in dto_content
     assert "image_list" in dto_content
-    
+
     # Check README has generated flow
     readme_content = (tmp_path / "refactored" / "README.md").read_text()
     assert "LoadImagesStep" in readme_content
@@ -223,7 +258,9 @@ def test_generate_wpipe_tests(tmp_path):
     """
     # Arrange: Scaffold a mock microservice wpipe project
     target = str(tmp_path / "test_gen_project")
-    server.deploy_wpipe_scaffolding(target, project_name="TestGen", pipeline_type="microservice")
+    server.deploy_wpipe_scaffolding(
+        target, project_name="TestGen", pipeline_type="microservice"
+    )
 
     # Act: Generate the unit tests
     result = server.generate_wpipe_tests(target)
@@ -244,7 +281,9 @@ def test_validate_context_flow(tmp_path):
     """
     # Arrange: Scaffold a mock microservice project
     target = str(tmp_path / "test_flow_project")
-    server.deploy_wpipe_scaffolding(target, project_name="TestFlow", pipeline_type="microservice")
+    server.deploy_wpipe_scaffolding(
+        target, project_name="TestFlow", pipeline_type="microservice"
+    )
 
     # Act: Perform static data flow validation
     report = server.validate_context_flow(target)
@@ -261,7 +300,9 @@ def test_dry_run_pipeline(tmp_path):
     """
     # Arrange: Scaffold project
     target = str(tmp_path / "test_dry_project")
-    server.deploy_wpipe_scaffolding(target, project_name="TestDry", pipeline_type="microservice")
+    server.deploy_wpipe_scaffolding(
+        target, project_name="TestDry", pipeline_type="microservice"
+    )
 
     # Act: Dry run with initial context
     initial_data = '{"transaction_id": "999", "input_path": "/data"}'
@@ -280,7 +321,9 @@ def test_optimize_wpipe_pipeline(tmp_path):
     """
     # Arrange: Scaffold project
     target = str(tmp_path / "test_opt_project")
-    server.deploy_wpipe_scaffolding(target, project_name="TestOpt", pipeline_type="microservice")
+    server.deploy_wpipe_scaffolding(
+        target, project_name="TestOpt", pipeline_type="microservice"
+    )
 
     # Act: Run optimization analysis
     report = server.optimize_wpipe_pipeline(target)
@@ -288,4 +331,3 @@ def test_optimize_wpipe_pipeline(tmp_path):
     # Assert: Report is generated with correct optimization score and suggestions
     assert "Performance & Optimization Report" in report
     assert "Optimization Score" in report
-
