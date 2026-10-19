@@ -52,9 +52,11 @@ def generate_mapping(
                 "fecha_creacion": ctime.isoformat(),
                 "fecha_edicion": mtime.isoformat(),
                 "en_rango_fechas": "TRUE" if in_range else "FALSE",
-                "path_destino": str(dest / file_path.relative_to(source))
-                if in_range and dest
-                else "",
+                "path_destino": (
+                    str(dest / file_path.relative_to(source))
+                    if in_range and dest
+                    else ""
+                ),
             }
         )
 
