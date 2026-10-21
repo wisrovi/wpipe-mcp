@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.3] - 2026-10-21
+
+### Added
+- **WPipe QA Compliance Rules (Rules 7 & 8)**:
+  - **Zero hasattr/getattr Usage**: Dynamic reflection via `hasattr()` or `getattr()` is strictly forbidden in WPipe pipelines to guarantee type safety, predictable execution paths, and explicit Pydantic DTO contracts. Automated scanning in `validate_wpipe_project()` detects and reports line numbers and file paths of violations.
+  - **Zero Bytecode Artifacts**: Project trees must contain 0 `__pycache__` directories and 0 `.pyc` compiled files to maintain clean container volumes, eliminate stale artifact bugs, and preserve repo hygiene (`PYTHONDONTWRITEBYTECODE=1`).
+- **Comprehensive Agent Setup Guide**:
+  - Added full install and configuration instructions for **OpenCode** (`mcp.json`), **Gemini CLI / Antigravity CLI** (`agy mcp add`), **Cursor** (MCP Settings command), and **Claude Desktop** (`claude_desktop_config.json`) in both CLI `config` helper and PyPI `README.md`.
+- **Unit Test Coverage**: Added dedicated unit test cases for zero reflection and zero bytecode validation.
+
 ## [0.4.2] - 2026-10-19
 
 ### Added
