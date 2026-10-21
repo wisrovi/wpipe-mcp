@@ -156,6 +156,11 @@ def test_deploy_wpipe_scaffolding_microservice_without_tests(tmp_path):
 
 
 def test_validate_wpipe_project_fully_compliant(tmp_path):
+    """
+    Validates that a newly scaffolded, properly structured WPipe microservice
+    project passes all QA compliance checks with 'Fully Compliant' status,
+    including 0 hasattr/getattr usages and 0 bytecode artifacts.
+    """
     target = str(tmp_path / "compliant_project")
     server.deploy_wpipe_scaffolding(
         target, project_name="CompApp", pipeline_type="microservice", include_tests=True
@@ -164,9 +169,18 @@ def test_validate_wpipe_project_fully_compliant(tmp_path):
     assert "Compliance Status: Fully Compliant" in report
     assert "Found main entrypoint" in report
     assert "Found directory: 'dto/'" in report
+    assert "Verified 0 usages of 'hasattr' or 'getattr'" in report
+    assert (
+        "Verified 0 '__pycache__' directories or '.pyc' bytecode files found" in report
+    )
 
 
 def test_validate_wpipe_project_violations(tmp_path):
+    """
+    Validates that architectural placement violations (e.g. defining @step
+    classes outside of states/ or BaseModel outside of dto/ or config/)
+    are detected and reported as compliance issues.
+    """
     target = str(tmp_path / "violating_project")
     server.deploy_wpipe_scaffolding(
         target,
@@ -192,6 +206,83 @@ def test_validate_wpipe_project_violations(tmp_path):
     assert "Architectural violation: Pydantic 'BaseModel' defined in" in report
     assert "wrong_step.py" in report
     assert "wrong_model.py" in report
+
+
+def test_validate_wpipe_project_hasattr_getattr_violations(tmp_path):
+    """
+    Validates that validate_wpipe_project strictly detects and flags forbidden
+    hasattr() and getattr() reflection calls in project code files.
+
+    This test verifies:
+    1. Scaffolds a clean microservice wpipe project.
+    2. Injects a state step file containing hasattr() and getattr() calls.
+    3. Executes validate_wpipe_project.
+    4. Asserts that compliance issues are reported specifically naming
+       'hasattr()' and 'getattr()' with file and line references.
+    """
+    target = str(tmp_path / "reflection_violating_project")
+    server.deploy_wpipe_scaffolding(
+        target,
+        project_name="ReflectApp",
+        pipeline_type="microservice",
+        include_tests=True,
+    )
+
+    # Inject forbidden hasattr and getattr into a state file
+    state_file = (
+        tmp_path / "reflection_violating_project" / "app" / "states" / "step_reflect.py"
+    )
+    state_file.write_text(
+        "from wpipe import step\n"
+        "@step()\n"
+        "class ReflectStep:\n"
+        "    def __call__(self, ctx):\n"
+        "        if hasattr(ctx, 'foo'):\n"
+        "            val = getattr(ctx, 'foo')\n"
+        "        return ctx\n"
+    )
+
+    report = server.validate_wpipe_project(target)
+    assert "Compliance Issues & Warnings" in report
+    assert "Forbidden dynamic reflection 'hasattr()'" in report
+    assert "Forbidden dynamic reflection 'getattr()'" in report
+    assert "step_reflect.py" in report
+
+
+def test_validate_wpipe_project_pycache_and_pyc_violations(tmp_path):
+    """
+    Validates that validate_wpipe_project strictly detects and flags the presence of
+    compiled bytecode artifacts (__pycache__ directories and .pyc files).
+
+    This test verifies:
+    1. Scaffolds a clean microservice wpipe project.
+    2. Creates a __pycache__ directory containing a compiled .pyc file in app/states/.
+    3. Executes validate_wpipe_project.
+    4. Asserts that Cleanliness violations are logged for both the __pycache__ folder
+       and the compiled .pyc artifact, reminding developers to set PYTHONDONTWRITEBYTECODE=1.
+    """
+    target = str(tmp_path / "bytecode_violating_project")
+    server.deploy_wpipe_scaffolding(
+        target,
+        project_name="BytecodeApp",
+        pipeline_type="microservice",
+        include_tests=True,
+    )
+
+    # Create a __pycache__ directory with a .pyc file inside
+    pycache_dir = (
+        tmp_path / "bytecode_violating_project" / "app" / "states" / "__pycache__"
+    )
+    pycache_dir.mkdir(parents=True, exist_ok=True)
+    pyc_file = pycache_dir / "step_sample.cpython-313.pyc"
+    pyc_file.write_bytes(b"\x00\x00\x00\x00")
+
+    report = server.validate_wpipe_project(target)
+    assert "Compliance Issues & Warnings" in report
+    assert "Cleanliness violation: Found compiled bytecode directory" in report
+    assert "Cleanliness violation: Found compiled bytecode artifact" in report
+    assert "__pycache__" in report
+    assert ".pyc" in report
 
 
 def test_document_wpipe_project(tmp_path):
