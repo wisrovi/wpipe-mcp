@@ -1,6 +1,6 @@
 [project]
 name = "wpipe-mcp"
-version = "0.4.3"
+version = "0.4.4"
 
 description = "MCP Server for WPipe Architecting"
 readme = "README.md"
