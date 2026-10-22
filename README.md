@@ -234,10 +234,10 @@ wpipe-mcp config --print
 | Tool Name | Parameters | Purpose |
 |:---|:---|:---|
 | `get_wpipe_architect_blueprints` | *(none)* | Returns production blueprints for states, declarative `pipelines.py`, and monolith migration examples. |
-| `get_wpipe_architect_manual` | *(none)* | Returns the official WPipe Architectural Manual with step-by-step guides and all 8 WPipe Quality Rules. |
+| `get_wpipe_architect_manual` | *(none)* | Returns the official WPipe Architectural Manual with step-by-step guides and all 10 WPipe Quality Rules. |
 | `search_wpipe_step` | `query: str` | Queries the official steps catalog for reusable pre-built steps (e.g., Kafka, Redis, OpenCV, YOLO). |
 | `deploy_wpipe_scaffolding` | `target_path: str, project_name: str, pipeline_type: str, include_tests: bool` | Generates a complete WPipe standard project with `dto/`, `states/`, `pipelines.py`, and `main.py`. |
-| `validate_wpipe_project` | `project_path: str` | Deep architectural compliance auditor checking directories, step decorators, BaseModel placement, 0 reflection, and 0 bytecode. |
+| `validate_wpipe_project` | `project_path: str` | Deep architectural compliance auditor checking directories, step decorators, BaseModel placement, 0 reflection, 0 bytecode, max 200 lines per file, and 0 nested function closures. |
 | `refactor_monolith_to_wpipe` | `source_file: str, target_dir: str` | Automatically analyzes and slices monolithic scripts into atomic steps and Pydantic context models. |
 | `document_wpipe_project` | `project_path: str` | Generates automated Mermaid flowcharts and documentation directly into the project's `README.md`. |
 | `generate_wpipe_tests` | `project_path: str` | Automatically builds a container-ready `pytest` test suite with extensive English comments and mocks. |
