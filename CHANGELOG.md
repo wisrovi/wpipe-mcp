@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.4] - 2026-10-22
+
+### Added
+- **WPipe QA Compliance Rules (Rules 9 & 10)**:
+  - **Maximum 200 Lines Per File (Modularity & Single Responsibility)**: Enforces that no source `.py` file exceeds 200 lines. Complex business logic, heavy parsing, and utility algorithms must be decomposed into dedicated modules within `app/utils/` or `app/dto/`. Automated compliance verification added to `validate_wpipe_project()` and `optimize_wpipe_pipeline()`.
+  - **Strict Single Responsibility & Zero Nested Function Closures in Steps**: WPipe `@step` classes must maintain a single, focused responsibility. Defining nested function definitions or closures inside `@step` `__call__` methods is strictly prohibited. Helper algorithms and transformations must be extracted into standalone utility functions in `app/utils/`.
+- **Automated Modularity Scanning**: Added static AST inspection in `validate_wpipe_project()` to detect nested functions, reporting function names, file paths, and line numbers.
+- **Unit Test Coverage**: Added dedicated test cases in `tests/test_wpipe_mcp.py` asserting detection of files > 200 lines and nested function definitions in steps.
+
 ## [0.4.3] - 2026-10-21
 
 ### Added
