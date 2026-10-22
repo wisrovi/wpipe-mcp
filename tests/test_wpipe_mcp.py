@@ -285,6 +285,56 @@ def test_validate_wpipe_project_pycache_and_pyc_violations(tmp_path):
     assert ".pyc" in report
 
 
+def test_validate_wpipe_project_line_limit_and_nested_function_violations(tmp_path):
+    """
+    Validates that validate_wpipe_project strictly detects and flags:
+    1. Source files exceeding 200 lines (Modularity & Single Responsibility).
+    2. Nested function definitions (closures inside functions or methods).
+    """
+    target = str(tmp_path / "modularity_violating_project")
+    server.deploy_wpipe_scaffolding(
+        target,
+        project_name="ModularityApp",
+        pipeline_type="microservice",
+        include_tests=True,
+    )
+
+    # 1. Inject a state file with > 200 lines
+    long_state_file = (
+        tmp_path / "modularity_violating_project" / "app" / "states" / "step_long.py"
+    )
+    long_content = (
+        "from wpipe import step\n@step()\nclass LongStep:\n    def __call__(self, ctx):\n        return ctx\n"
+        + ("# line\n" * 210)
+    )
+    long_state_file.write_text(long_content)
+
+    # 2. Inject a state file with a nested function definition
+    nested_state_file = (
+        tmp_path / "modularity_violating_project" / "app" / "states" / "step_nested.py"
+    )
+    nested_content = (
+        "from wpipe import step\n"
+        "@step()\n"
+        "class NestedStep:\n"
+        "    def __call__(self, ctx):\n"
+        "        def inner_helper(val):\n"
+        "            return val * 2\n"
+        "        return inner_helper(ctx)\n"
+    )
+    nested_state_file.write_text(nested_content)
+
+    report = server.validate_wpipe_project(target)
+    assert "Compliance Issues & Warnings" in report
+    assert "Modularity violation: File" in report
+    assert "exceeds 200 lines" in report
+    assert "step_long.py" in report
+    assert (
+        "Architectural violation: Nested function definition 'inner_helper'" in report
+    )
+    assert "step_nested.py" in report
+
+
 def test_document_wpipe_project(tmp_path):
     target = str(tmp_path / "doc_project")
     server.deploy_wpipe_scaffolding(
