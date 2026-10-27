@@ -1,6 +1,6 @@
 [project]
 name = "wpipe-mcp"
-version = "0.4.4"
+version = "0.4.5"
 
 description = "MCP Server for WPipe Architecting"
 readme = "README.md"
@@ -18,9 +18,17 @@ classifiers = [
     "Intended Audience :: Developers",
 ]
 dependencies = [
-    "mcp[cli]>=1.0.0",
+    "mcp[cli]>=1.0.0,<2",
     "fastmcp>=0.1.0",
     "pydantic>=2.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "black>=24.0.0"
 ]
 
 [project.urls]
