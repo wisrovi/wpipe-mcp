@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.5.0] - 2026-10-27
+
+### Added
+- **New MCP Code Generation Tools**:
+  - `generate_wpipe_step`: Scaffolds production-grade WPipe Step classes (`@step`) with Google-style docstrings, typed `__call__` / `async __call__` signatures, and automated Pytest unit tests in `test/`.
+  - `generate_wpipe_dto`: Scaffolds modern Pydantic v2 DTO schemas (`dto/*.py`) with `ConfigDict(arbitrary_types_allowed=True, validate_assignment=True)` and Google docstrings.
+  - `generate_wpipe_dag`: Statically parses `pipelines.py` and produces an interactive standalone Mermaid flowchart (`pipelines.wpipe.mermaid`) with clickable nodes and distinct pipeline subgraphs.
+- **Automated QA & Architectural AST Validations**:
+  - **Exhaustive Google-Style Docstrings Check (Rule 2)**: Added AST-level validation in `validate_wpipe_project()` checking all functions and classes for required Google-style docstring sections (`Args:`, `Returns:`, `Raises:`).
+  - **Strict English Policy Lexical Scanner (Rule 1)**: Automated scanning for Spanish tokens across all code, comments, docstrings, and identifiers to enforce 100% English.
+  - **DTO Serialization Safety**: Checks Pydantic context DTOs for unsafe raw tensor or numpy array fields without proper `arbitrary_types_allowed` configuration.
+- **Asynchronous Pipeline Architectures**:
+  - Added dedicated blueprint and manual guide for non-blocking I/O and streaming pipelines utilizing `async def __call__` and `asyncio.to_thread`.
+- **Scaffolding Enhancements**:
+  - Updated `deploy_wpipe_scaffolding()` to include `.pylintrc`, containerized test runner `run_tests_docker.sh`, and pre-compiled `app/pipelines.wpipe.mermaid`.
+  - Standardized English class naming (`InferenceStep`) across all scaffolding templates.
+- **Unit Test Coverage**:
+  - Added test suites covering all new tools, asynchronous pipeline blueprints, and strict rule enforcement.
+
 ## [0.4.6] - 2026-10-27
 
 ### Added
