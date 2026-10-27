@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.6] - 2026-10-27
+
+### Added
+- **WPipe Architectural Standards & QA Rules (Rule 14)**:
+  - **Distinct Pipeline Variable Identifiers for Multi-DAG Visualization (Rule 14)**: Mandates that whenever multiple pipelines are defined within a single file (such as `app/pipelines.py` or factory builders), each pipeline instance MUST be assigned to a distinct, unique, and descriptive variable identifier (e.g. `hsi_analysis_pipeline = _create_pipeline(...)`, `hsi_preview_pipeline = _create_pipeline(...)`), NEVER a generic, shared variable name (such as `pipeline = ...` repeated in each function).
+  - **Technical Rationale**: The WPipe VS Code extension DAG parser scans `.set_steps(...)` calls and deduplicates pipelines using the variable name prefix before the method call (`inst.text.split('.')[0]`). Reusing generic variable names causes the extension to register only the first pipeline and silently discard all subsequent pipelines from the Mermaid DAG preview panel. Using unique, semantic variable names guarantees that the VS Code extension discovers and renders all pipelines as separate subgraphs simultaneously in the DAG Webview.
+  - **Automated Verification**: Added static verification in `validate_wpipe_project()` to detect duplicate pipeline variable names calling `.set_steps()` within `pipelines.py`, reporting the duplicate variable names and instructions for compliance.
+- **Unit Test Coverage**:
+  - Added unit test cases verifying detection of duplicate pipeline variable names in `pipelines.py` and asserting presence of Rule 14 in the architectural manual.
+
 ## [0.4.5] - 2026-10-27
 
 ### Added
