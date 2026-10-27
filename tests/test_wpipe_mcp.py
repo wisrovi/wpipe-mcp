@@ -12,6 +12,8 @@ def test_blueprints_have_real_newlines():
     assert "Declarative Microservice Pipeline Pattern (app/pipelines.py)" in text
     assert "inference_pipeline.set_steps" in text
     assert "execute_inference_pipeline" in text
+    assert "Asynchronous Pipeline Pattern (Async / Non-Blocking)" in text
+    assert "execute_async_pipeline" in text
     assert "\n" in text
     assert "\\n" not in text
 
@@ -32,6 +34,7 @@ def test_manual_contains_guides():
     assert "STRICT ENGLISH POLICY (100% ENGLISH)" in text
     assert "DISTINCT PIPELINE VARIABLE IDENTIFIERS FOR MULTI-DAG VISUALIZATION" in text
     assert "Distinct Pipeline Variable Identifiers" in text
+    assert "ASYNCHRONOUS PIPELINE PATTERNS (I/O BOUND WORKLOADS)" in text
 
 
 def test_search_wpipe_step_returns_results():
@@ -360,14 +363,14 @@ def test_validate_wpipe_project_duplicate_pipeline_names(tmp_path):
     # Inject duplicate variable names
     dup_content = (
         "from wpipe import Pipeline\n"
-        "from states.step_a import InferenciaStep\n\n"
+        "from states.step_a import InferenceStep\n\n"
         "def create_a():\n"
         "    pipeline = Pipeline('pipe_a')\n"
-        "    pipeline.set_steps([InferenciaStep()])\n"
+        "    pipeline.set_steps([InferenceStep()])\n"
         "    return pipeline\n\n"
         "def create_b():\n"
         "    pipeline = Pipeline('pipe_b')\n"
-        "    pipeline.set_steps([InferenciaStep()])\n"
+        "    pipeline.set_steps([InferenceStep()])\n"
         "    return pipeline\n"
     )
     pipelines_file.write_text(dup_content)
@@ -377,17 +380,26 @@ def test_validate_wpipe_project_duplicate_pipeline_names(tmp_path):
     assert "Duplicate pipeline variable name(s)" in report
     assert "pipeline" in report
 
-    # Fix with distinct variable names
+    # Fix with distinct variable names and Google docstrings
     distinct_content = (
+        '"""Pipeline declarations."""\n\n'
         "from wpipe import Pipeline\n"
-        "from states.step_a import InferenciaStep\n\n"
-        "def create_a():\n"
+        "from states.step_a import InferenceStep\n\n"
+        "def create_a() -> Pipeline:\n"
+        '    """Build pipeline A.\n\n'
+        "    Returns:\n"
+        "        Pipeline: Constructed instance.\n"
+        '    """\n'
         "    pipe_a = Pipeline('pipe_a')\n"
-        "    pipe_a.set_steps([InferenciaStep()])\n"
+        "    pipe_a.set_steps([InferenceStep()])\n"
         "    return pipe_a\n\n"
-        "def create_b():\n"
+        "def create_b() -> Pipeline:\n"
+        '    """Build pipeline B.\n\n'
+        "    Returns:\n"
+        "        Pipeline: Constructed instance.\n"
+        '    """\n'
         "    pipe_b = Pipeline('pipe_b')\n"
-        "    pipe_b.set_steps([InferenciaStep()])\n"
+        "    pipe_b.set_steps([InferenceStep()])\n"
         "    return pipe_b\n"
     )
     pipelines_file.write_text(distinct_content)
@@ -407,7 +419,7 @@ def test_document_wpipe_project(tmp_path):
 
     report = server.document_wpipe_project(target, write_to_readme=True)
     assert "Success: Technical execution flow documented successfully." in report
-    assert "InferenciaStep" in report
+    assert "InferenceStep" in report
     assert "graph TD" in report
 
     readme_file = tmp_path / "doc_project" / "README.md"
@@ -475,7 +487,7 @@ def test_generate_wpipe_tests(tmp_path):
     test_file = tmp_path / "test_gen_project" / "app" / "test" / "test_step_a.py"
     assert test_file.exists()
     content = test_file.read_text()
-    assert "test_inferenciastep_execution" in content
+    assert "test_inferencestep_execution" in content
     assert "MockContext" in content
 
 
@@ -493,9 +505,9 @@ def test_validate_context_flow(tmp_path):
     # Act: Perform static data flow validation
     report = server.validate_context_flow(target)
 
-    # Assert: Verify validation detects InferenciaStep reads/writes
+    # Assert: Verify validation detects InferenceStep reads/writes
     assert "WPipe Static Data Flow Analysis" in report
-    assert "InferenciaStep" in report
+    assert "InferenceStep" in report
 
 
 def test_dry_run_pipeline(tmp_path):
@@ -515,7 +527,7 @@ def test_dry_run_pipeline(tmp_path):
 
     # Assert: Verify execution log has step simulation details
     assert "WPipe Dry Run Simulation Log" in report
-    assert "InferenciaStep" in report
+    assert "InferenceStep" in report
     assert "999" in report
 
 
@@ -536,3 +548,157 @@ def test_optimize_wpipe_pipeline(tmp_path):
     # Assert: Report is generated with correct optimization score and suggestions
     assert "Performance & Optimization Report" in report
     assert "Optimization Score" in report
+
+
+def test_generate_wpipe_step_and_dto(tmp_path):
+    """
+    Validates generation of granular step classes and Pydantic v2 DTO schemas
+    with Google docstrings and unit tests.
+    """
+    target = str(tmp_path / "granular_proj")
+    server.deploy_wpipe_scaffolding(
+        target,
+        project_name="GranularApp",
+        pipeline_type="microservice",
+        include_tests=True,
+    )
+
+    # Test DTO generation
+    dto_res = server.generate_wpipe_dto(
+        target,
+        context_name="SpectralPayloadContext",
+        fields={"scene_id": "str", "bands": "list[int]", "calibrated": "bool"},
+        description="Execution context carrying calibrated spectral scenes.",
+    )
+    assert "Success: WPipe DTO Context" in dto_res
+    dto_file = (
+        tmp_path / "granular_proj" / "app" / "dto" / "spectral_payload_context.py"
+    )
+    assert dto_file.exists()
+    dto_code = dto_file.read_text()
+    assert "class SpectralPayloadContext(BaseModel):" in dto_code
+    assert "ConfigDict(arbitrary_types_allowed=True" in dto_code
+    assert "scene_id: str" in dto_code
+
+    # Test synchronous step generation
+    step_res = server.generate_wpipe_step(
+        target,
+        step_name="SpectralCalibrationStep",
+        context_class="SpectralPayloadContext",
+        description="Calibrates raw radiance values to reflectance percentages.",
+        is_async=False,
+    )
+    assert "Success: WPipe Step 'SpectralCalibrationStep'" in step_res
+    step_file = (
+        tmp_path / "granular_proj" / "app" / "states" / "step_spectral_calibration.py"
+    )
+    assert step_file.exists()
+    step_code = step_file.read_text()
+    assert "@step(" in step_code
+    assert "class SpectralCalibrationStep:" in step_code
+    assert (
+        "def __call__(self, context: SpectralPayloadContext) -> SpectralPayloadContext:"
+        in step_code
+    )
+    assert "Args:" in step_code
+    assert "Returns:" in step_code
+
+    test_file = (
+        tmp_path
+        / "granular_proj"
+        / "app"
+        / "test"
+        / "test_step_spectral_calibration.py"
+    )
+    assert test_file.exists()
+
+    # Test asynchronous step generation
+    async_step_res = server.generate_wpipe_step(
+        target,
+        step_name="AsyncCloudFetchStep",
+        context_class="SpectralPayloadContext",
+        description="Asynchronously streams spectral bands from S3.",
+        is_async=True,
+    )
+    assert "Success: WPipe Step 'AsyncCloudFetchStep'" in async_step_res
+    async_step_file = (
+        tmp_path / "granular_proj" / "app" / "states" / "step_async_cloud_fetch.py"
+    )
+    assert async_step_file.exists()
+    async_code = async_step_file.read_text()
+    assert (
+        "async def __call__(self, context: SpectralPayloadContext) -> SpectralPayloadContext:"
+        in async_code
+    )
+
+
+def test_generate_wpipe_dag(tmp_path):
+    """
+    Validates generation of standalone Mermaid DAG (.wpipe.mermaid) from pipelines.py.
+    """
+    target = str(tmp_path / "dag_proj")
+    server.deploy_wpipe_scaffolding(
+        target, project_name="DagApp", pipeline_type="microservice", include_tests=False
+    )
+
+    dag_res = server.generate_wpipe_dag(target)
+    assert "Success: Standalone DAG generated successfully" in dag_res
+    mermaid_file = tmp_path / "dag_proj" / "app" / "pipelines.wpipe.mermaid"
+    assert mermaid_file.exists()
+    mermaid_text = mermaid_file.read_text()
+    assert "flowchart TD" in mermaid_text
+    assert "subgraph sg_" in mermaid_text
+    assert "InferenceStep" in mermaid_text
+
+
+def test_validate_wpipe_project_strict_rules(tmp_path):
+    """
+    Validates that validate_wpipe_project flags missing Google docstrings,
+    Spanish keywords, and unconfigured tensor/array DTO fields.
+    """
+    target = str(tmp_path / "strict_proj")
+    server.deploy_wpipe_scaffolding(
+        target,
+        project_name="StrictApp",
+        pipeline_type="microservice",
+        include_tests=True,
+    )
+
+    # 1. Base project should pass
+    clean_report = server.validate_wpipe_project(target)
+    assert "Compliance Status: Fully Compliant" in clean_report
+
+    # 2. Add a step with missing Google docstrings
+    bad_step = tmp_path / "strict_proj" / "app" / "states" / "undocumented_step.py"
+    bad_step.write_text(
+        "from wpipe import Step\n"
+        "from dto.context import MicroserviceContext\n\n"
+        "class UndocumentedStep(Step):\n"
+        "    def execute(self, context: MicroserviceContext) -> MicroserviceContext:\n"
+        "        return context\n"
+    )
+
+    report_undoc = server.validate_wpipe_project(target)
+    assert "Google docstring" in report_undoc or "undocumented_step.py" in report_undoc
+
+    # 3. Add Spanish token into code
+    bad_spanish_step = tmp_path / "strict_proj" / "app" / "states" / "spanish_step.py"
+    bad_spanish_step.write_text(
+        "from wpipe import Step\n"
+        "from dto.context import MicroserviceContext\n\n"
+        "class SpanishStep(Step):\n"
+        '    """Process step with spanish token.\n\n'
+        "    Args:\n"
+        "        context: MicroserviceContext payload.\n\n"
+        "    Returns:\n"
+        "        MicroserviceContext: mutated.\n"
+        '    """\n'
+        "    def execute(self, context: MicroserviceContext) -> MicroserviceContext:\n"
+        "        # variable de configuracion en espanol\n"
+        "        configuracion = 1\n"
+        "        return context\n"
+    )
+
+    report_spanish = server.validate_wpipe_project(target)
+    assert "Strict English Policy Violation" in report_spanish
+    assert "configuracion" in report_spanish
