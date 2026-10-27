@@ -702,3 +702,35 @@ def test_validate_wpipe_project_strict_rules(tmp_path):
     report_spanish = server.validate_wpipe_project(target)
     assert "Strict English Policy Violation" in report_spanish
     assert "configuracion" in report_spanish
+
+
+def test_validate_pinned_dependencies_and_test_location(tmp_path):
+    """Validates Rule 15 (pinned requirements) and Rule 16 (test dir location)."""
+    target = str(tmp_path / "pinned_project")
+    server.deploy_wpipe_scaffolding(
+        target, project_name="PinnedProject", pipeline_type="microservice"
+    )
+
+    # Scaffolding should pass pinned dependencies validation
+    report = server.validate_wpipe_project(target)
+    assert "strictly pinned dependencies" in report
+
+    # Test unpinned dependency violation
+    req_file = tmp_path / "pinned_project" / "requirements.txt"
+    req_file.write_text("fastapi>=0.100.0\nuvicorn==0.23.0\n")
+    report_unpinned = server.validate_wpipe_project(target)
+    assert "Dependency pinning violation (Rule 15)" in report_unpinned
+
+    # Test root tests directory violation (Rule 16)
+    # Remove app/test and create root tests/
+    import shutil
+
+    app_test = tmp_path / "pinned_project" / "app" / "test"
+    if app_test.exists():
+        shutil.rmtree(app_test)
+    root_tests = tmp_path / "pinned_project" / "tests"
+    root_tests.mkdir()
+    (root_tests / "test_example.py").write_text("# root test")
+
+    report_root_tests = server.validate_wpipe_project(target)
+    assert "Test directory location violation (Rule 16)" in report_root_tests
