@@ -10,7 +10,7 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/wpipe-mcp.svg?color=blue)](https://pypi.org/project/wpipe-mcp/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/wpipe-mcp.svg)](https://pypi.org/project/wpipe-mcp/)
-[![Version](https://img.shields.io/badge/version-0.4.3-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
+[![Version](https://img.shields.io/badge/version-0.4.5-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-1.0-orange.svg)](https://modelcontextprotocol.io)
 
@@ -70,18 +70,23 @@ flowchart LR
 
 ## 🏆 WPipe QA Compliance Rules
 
-When implementing or validating WPipe pipelines, `wpipe-mcp` strictly enforces the following **8 Mandatory Quality Rules**:
+When implementing or validating WPipe pipelines, `wpipe-mcp` strictly enforces the following **13 Mandatory Quality Rules**:
 
 | Rule # | Requirement | Description |
 |:---:|:---|:---|
-| **1** | **Strict English Policy** | All code, docstrings, variable names, comments, and log messages MUST be strictly in English. |
-| **2** | **Google-Style Docstrings** | Every module, class, method, and function MUST contain Google-style docstrings (`Args`, `Returns`, `Attributes`, `Raises`). |
+| **1** | **Strict English Policy (100% English)** | All code, docstrings, variable names, functions, classes, comments, log messages, error messages, test names, and UI elements (Gradio tabs, buttons, labels, FAQs) MUST be strictly in English. |
+| **2** | **Exhaustive Google-Style Docstrings** | Every module, class, method, and function MUST contain complete Google-style docstrings explicitly detailing all parameters (`Args:` with types and semantics), return values (`Returns:` with types), and raised exceptions (`Raises:` with trigger conditions). |
 | **3** | **Full Typing & Mypy Compliance** | Every function parameter and return type must have explicit type annotations passing `mypy --ignore-missing-imports`. |
 | **4** | **Pylint Score >= 9.3** | Code must achieve a static analysis score of at least 9.3/10 in Pylint. |
-| **5** | **Dockerized Pytest & Coverage (>80%)** | Unit tests must be placed in `tests/`, executed inside a Docker container via `make pytest` or `docker run`, and maintain >80% statement coverage. |
+| **5** | **Dockerized Pytest & Coverage (>80%)** | Unit tests must be placed in `tests/`, executed inside a Docker container via `make pytest` or `run_tests_docker.sh`, and maintain >80% statement coverage. |
 | **6** | **Formatting & Preserved Functionality** | Code must pass `black` and `isort` without altering or breaking existing execution entrypoints. |
 | **7** | **Zero `hasattr` / `getattr` Usage** | Dynamic reflection with `hasattr()` or `getattr()` is strictly forbidden in WPipe pipelines. Context fields must be typed explicitly using Pydantic models, dataclasses, `vars()`, or explicit dictionary lookups (`dict.get()`). Line-by-line checks in `validate_wpipe_project` flag violations. |
 | **8** | **Zero Bytecode Artifacts** | All repositories and microservices must maintain **0 `__pycache__` directories** and **0 `.pyc` compiled files** to prevent stale bytecode bugs and container volume pollution. Always enforce `PYTHONDONTWRITEBYTECODE=1`. |
+| **9** | **Maximum 200 Lines Per File** | No source file (.py) should exceed 200 lines of code. Decompose complex logic into focused helper modules in utils/ and dedicated DTOs in dto/ to maintain strict modularity. |
+| **10** | **Strict Single Responsibility Principle (SRP)** | Every Python file MUST have one single responsibility. Routers, view layouts, event controller handlers, in-memory data cubes, format loaders, and math algorithms must reside in dedicated, non-overlapping modules. |
+| **11** | **Zero Nested Closures in Steps** | Defining inner functions (closures) inside `@step` `__call__` methods is strictly prohibited. Helper algorithms and transformations must be extracted into standalone utility functions in `app/utils/`. |
+| **12** | **Mandatory User Inquiry & Decision Protocol** | Agents must NEVER make silent assumptions regarding legacy code retention or cleanup. Always explicitly consult the user before deleting obsolete methods/files, keeping legacy wrappers, or making refactoring tradeoffs. |
+| **13** | **Zero Dead Code & Redundancy** | Clean repository hygiene requiring unused functions, dead code blocks, obsolete legacy wrappers, and unused imports to be removed or explicitly brought to the user's attention. Zero duplicate files. |
 
 ---
 
@@ -234,7 +239,7 @@ wpipe-mcp config --print
 | Tool Name | Parameters | Purpose |
 |:---|:---|:---|
 | `get_wpipe_architect_blueprints` | *(none)* | Returns production blueprints for states, declarative `pipelines.py`, and monolith migration examples. |
-| `get_wpipe_architect_manual` | *(none)* | Returns the official WPipe Architectural Manual with step-by-step guides and all 10 WPipe Quality Rules. |
+| `get_wpipe_architect_manual` | *(none)* | Returns the official WPipe Architectural Manual with step-by-step guides and all 13 WPipe Quality Rules. |
 | `search_wpipe_step` | `query: str` | Queries the official steps catalog for reusable pre-built steps (e.g., Kafka, Redis, OpenCV, YOLO). |
 | `deploy_wpipe_scaffolding` | `target_path: str, project_name: str, pipeline_type: str, include_tests: bool` | Generates a complete WPipe standard project with `dto/`, `states/`, `pipelines.py`, and `main.py`. |
 | `validate_wpipe_project` | `project_path: str` | Deep architectural compliance auditor checking directories, step decorators, BaseModel placement, 0 reflection, 0 bytecode, max 200 lines per file, and 0 nested function closures. |
