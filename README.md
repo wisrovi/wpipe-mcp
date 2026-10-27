@@ -70,7 +70,7 @@ flowchart LR
 
 ## 🏆 WPipe QA Compliance Rules
 
-When implementing or validating WPipe pipelines, `wpipe-mcp` strictly enforces the following **13 Mandatory Quality Rules**:
+When implementing or validating WPipe pipelines, `wpipe-mcp` strictly enforces the following **14 Mandatory Quality Rules**:
 
 | Rule # | Requirement | Description |
 |:---:|:---|:---|
@@ -87,6 +87,7 @@ When implementing or validating WPipe pipelines, `wpipe-mcp` strictly enforces t
 | **11** | **Zero Nested Closures in Steps** | Defining inner functions (closures) inside `@step` `__call__` methods is strictly prohibited. Helper algorithms and transformations must be extracted into standalone utility functions in `app/utils/`. |
 | **12** | **Mandatory User Inquiry & Decision Protocol** | Agents must NEVER make silent assumptions regarding legacy code retention or cleanup. Always explicitly consult the user before deleting obsolete methods/files, keeping legacy wrappers, or making refactoring tradeoffs. |
 | **13** | **Zero Dead Code & Redundancy** | Clean repository hygiene requiring unused functions, dead code blocks, obsolete legacy wrappers, and unused imports to be removed or explicitly brought to the user's attention. Zero duplicate files. |
+| **14** | **Distinct Pipeline Variable Identifiers for Multi-DAG Visualization** | When multiple pipelines or factory builders are defined in a file (e.g. `app/pipelines.py`), each pipeline instance MUST be assigned to a distinct, unique, and descriptive variable identifier (e.g. `hsi_analysis_pipeline = ...`, `hsi_preview_pipeline = ...`), NEVER a generic repeated name (`pipeline = ...`). The WPipe VS Code extension uses this variable name to identify and deduplicate subgraphs; using unique names ensures all pipelines render simultaneously in the DAG Webview. |
 
 ---
 
@@ -239,7 +240,7 @@ wpipe-mcp config --print
 | Tool Name | Parameters | Purpose |
 |:---|:---|:---|
 | `get_wpipe_architect_blueprints` | *(none)* | Returns production blueprints for states, declarative `pipelines.py`, and monolith migration examples. |
-| `get_wpipe_architect_manual` | *(none)* | Returns the official WPipe Architectural Manual with step-by-step guides and all 13 WPipe Quality Rules. |
+| `get_wpipe_architect_manual` | *(none)* | Returns the official WPipe Architectural Manual with step-by-step guides and all 14 WPipe Quality Rules. |
 | `search_wpipe_step` | `query: str` | Queries the official steps catalog for reusable pre-built steps (e.g., Kafka, Redis, OpenCV, YOLO). |
 | `deploy_wpipe_scaffolding` | `target_path: str, project_name: str, pipeline_type: str, include_tests: bool` | Generates a complete WPipe standard project with `dto/`, `states/`, `pipelines.py`, and `main.py`. |
 | `validate_wpipe_project` | `project_path: str` | Deep architectural compliance auditor checking directories, step decorators, BaseModel placement, 0 reflection, 0 bytecode, max 200 lines per file, and 0 nested function closures. |
