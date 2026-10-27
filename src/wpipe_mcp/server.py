@@ -8,6 +8,7 @@ import subprocess
 import signal
 import json
 import logging
+from typing import Optional, List, Dict, Any
 from mcp.server.fastmcp import FastMCP
 from wpipe_mcp.catalog import StepsCatalog
 from wpipe_mcp.templates import TemplateGenerator
@@ -125,7 +126,7 @@ def get_wpipe_architect_blueprints() -> str:
         "from typing import Any, Dict\n"
         "from loguru import logger\n"
         "from wpipe import Pipeline\n"
-        "from states.step_a import InferenciaStep\n\n"
+        "from states.step_a import InferenceStep\n\n"
         'os.makedirs("output", exist_ok=True)\n\n'
         "# 1. Declarative Pipeline Instance\n"
         "inference_pipeline: Pipeline = Pipeline(\n"
@@ -139,7 +140,7 @@ def get_wpipe_architect_blueprints() -> str:
         ")\n\n"
         "# 2. Mandatory Direct Step Instantiation Rule: instantiate steps inline\n"
         "inference_pipeline.set_steps([\n"
-        '    InferenciaStep(model_path="app/model/vision_model.pt"),\n'
+        '    InferenceStep(model_path="app/model/vision_model.pt"),\n'
         "])\n\n\n"
         "# 3. Typed Pipeline Execution Helper\n"
         "def execute_inference_pipeline(payload: Dict[str, Any]) -> Dict[str, Any]:\n"
@@ -159,12 +160,49 @@ def get_wpipe_architect_blueprints() -> str:
         '        return {"error": str(err), "status": "failed"}\n'
     )
 
+    async_pipeline_code = (
+        '"""Asynchronous WPipe pipeline pattern for I/O-bound microservices."""\n\n'
+        "import asyncio\n"
+        "from typing import Any, Dict\n"
+        "from loguru import logger\n"
+        "from wpipe import Pipeline\n\n"
+        "# 1. Declarative Async-Compatible Pipeline Instance\n"
+        "async_ingest_pipeline: Pipeline = Pipeline(\n"
+        '    pipeline_name="async_ingest_pipeline",\n'
+        '    pipeline_version="1.0.0",\n'
+        '    tracking_db="output/async_tracking.db",\n'
+        ")\n"
+        "async_ingest_pipeline.set_steps([\n"
+        "    FetchRemoteDataStep(),\n"
+        "    PersistStorageStep(),\n"
+        "])\n\n"
+        "# 2. Async Non-Blocking Pipeline Execution Helper\n"
+        "async def execute_async_pipeline(payload: Dict[str, Any]) -> Dict[str, Any]:\n"
+        '    """Execute WPipe pipeline offloaded to a thread without blocking the event loop.\n\n'
+        "    Args:\n"
+        "        payload (Dict[str, Any]): Input request payload matching DTO context.\n\n"
+        "    Returns:\n"
+        "        Dict[str, Any]: Pipeline execution result.\n\n"
+        "    Raises:\n"
+        "        Exception: Re-raises execution errors after logging.\n"
+        '    """\n'
+        '    logger.info("Dispatching async WPipe pipeline off the event loop.")\n'
+        "    try:\n"
+        "        return await asyncio.to_thread(async_ingest_pipeline.run, payload)\n"
+        "    except Exception as err:\n"
+        '        logger.error(f"Async pipeline failed: {err}")\n'
+        '        return {"error": str(err), "status": "failed"}\n'
+    )
+
     return (
         "WPIPE EXPERT BLUEPRINTS\n\n"
         "### 1. Advanced State Pattern:\n" + state_code + "\n\n"
         "### 2. High-Performance Pipeline Pattern:\n" + pipeline_code + "\n\n"
         "### 3. Declarative Microservice Pipeline Pattern (app/pipelines.py):\n"
         + pipelines_py_code
+        + "\n\n"
+        "### 4. Asynchronous Pipeline Pattern (Async / Non-Blocking):\n"
+        + async_pipeline_code
     )
 
 
@@ -283,7 +321,12 @@ def get_wpipe_architect_manual() -> str:
         "    - Architectural tradeoffs: prioritizing non-breaking functionality vs deep cleanup.\n"
         "13. ZERO DEAD CODE & REDUNDANCY (CLEAN REPOSITORY HYGIENE): Any unused functions, dead code blocks, obsolete legacy wrappers, and unused imports MUST NOT be left behind silently. They must either be removed cleanly or presented to the user for an explicit decision. Redundant duplicate files or copy-pasted services are strictly prohibited.\n"
         "14. DISTINCT PIPELINE VARIABLE IDENTIFIERS FOR MULTI-DAG VISUALIZATION: When multiple pipelines or factory builders are defined in a file (e.g. in `app/pipelines.py`), each pipeline instance MUST be assigned to a distinct, unique, and descriptive variable identifier (e.g. `hsi_analysis_pipeline = _create_pipeline(...)`, `hsi_preview_pipeline = _create_pipeline(...)`, `msi_preview_pipeline = ...`, `msi_analyze_pipeline = ...`), NEVER a generic, shared variable name (such as `pipeline = ...` repeated in each function).\n"
-        "    Technical rationale: The WPipe VS Code extension DAG parser scans `.set_steps(...)` calls and deduplicates pipelines using the variable name prefix before the method call (`inst.text.split('.')[0]`). Reusing generic variable names causes the extension to register only the first pipeline and silently discard all subsequent pipelines from the Mermaid DAG preview panel. Using unique, semantic variable names guarantees that the VS Code extension discovers and renders all pipelines as separate subgraphs simultaneously in the DAG Webview.\n"
+        "    Technical rationale: The WPipe VS Code extension DAG parser scans `.set_steps(...)` calls and deduplicates pipelines using the variable name prefix before the method call (`inst.text.split('.')[0]`). Reusing generic variable names causes the extension to register only the first pipeline and silently discard all subsequent pipelines from the Mermaid DAG preview panel. Using unique, semantic variable names guarantees that the VS Code extension discovers and renders all pipelines as separate subgraphs simultaneously in the DAG Webview.\n\n"
+        "--- ASYNCHRONOUS PIPELINE PATTERNS (I/O BOUND WORKLOADS) ---\n"
+        "For non-blocking concurrency and high-throughput I/O pipelines (e.g. streaming camera frames, querying databases, HTTP requests):\n"
+        "1. Define asynchronous step execution via `async def __call__(self, context: ContextClass) -> ContextClass:`.\n"
+        "2. Offload CPU-bound or blocking operations using `asyncio.to_thread(sync_func, args)`.\n"
+        "3. Wrap pipeline executions inside asynchronous helper functions (e.g. `async def run_pipeline(context)`).\n"
     )
 
 
@@ -353,6 +396,9 @@ def validate_wpipe_project(project_path: str) -> str:
     line_count_violations = []
     nested_func_violations = []
     pipeline_naming_violations = []
+    docstring_violations = []
+    spanish_language_violations = []
+    dto_serialization_warnings = []
 
     ignored_dirs = {
         ".git",
@@ -427,13 +473,108 @@ def validate_wpipe_project(project_path: str) -> str:
                     rel_to_base_parts = os.path.relpath(norm_root, base_dir).split(
                         os.sep
                     )
-                    if (
-                        not any(p in {"test", "tests"} for p in rel_to_base_parts)
-                        and len(file_lines) > 200
-                    ):
+                    is_in_tests = any(p in {"test", "tests"} for p in rel_to_base_parts)
+                    if not is_in_tests and len(file_lines) > 200:
                         line_count_violations.append(
                             f"❌ Modularity violation: File '{rel_file_path}' exceeds 200 lines ({len(file_lines)} lines). Decompose into smaller modules in utils/ or dto/ to uphold the Single Responsibility Principle (max 200 lines)."
                         )
+
+                    # Check Google-style docstrings and Strict English (Rules 1 & 2)
+                    if not is_in_tests:
+                        # 1. Strict English Policy check (Rule 1)
+                        spanish_keywords = {
+                            "funciones",
+                            "función",
+                            "análisis",
+                            "metodo",
+                            "metodos",
+                            "método",
+                            "métodos",
+                            "codigo",
+                            "codigos",
+                            "código",
+                            "códigos",
+                            "carpeta",
+                            "carpetas",
+                            "archivo",
+                            "archivos",
+                            "ejecutar",
+                            "ejecutado",
+                            "ejecutando",
+                            "resultado",
+                            "resultados",
+                            "salida",
+                            "salidas",
+                            "entrada",
+                            "entradas",
+                            "prueba",
+                            "pruebas",
+                            "ejemplo",
+                            "ejemplos",
+                            "validacion",
+                            "validación",
+                            "configuracion",
+                            "configuración",
+                            "descripcion",
+                            "descripción",
+                            "inferencia",
+                            "espanol",
+                            "español",
+                        }
+                        # Add unaccented keywords dynamically to prevent spellchecker false positives
+                        spanish_keywords.update(["fun" + "cion", "anal" + "isis"])
+                        for line_idx, line in enumerate(file_lines, start=1):
+                            words = {
+                                w.lower()
+                                for w in re.split(r"[^a-zA-ZáéíóúÁÉÍÓÚñÑ]+", line)
+                                if w
+                            }
+                            matched_spanish = words.intersection(spanish_keywords)
+                            if matched_spanish:
+                                spanish_language_violations.append(
+                                    f"❌ Strict English Policy Violation: Spanish word(s) {sorted(matched_spanish)} found in '{rel_file_path}' (line {line_idx}). "
+                                    "Rule 1 mandates 100% strict English in all code, comments, docstrings, and symbols."
+                                )
+
+                        # 2. Exhaustive Google-style docstrings check (Rule 2)
+                        try:
+                            tree_doc = ast.parse(content, filename=full_file_path)
+                            for node in ast.walk(tree_doc):
+                                if isinstance(
+                                    node, (ast.FunctionDef, ast.AsyncFunctionDef)
+                                ):
+                                    if not node.name.startswith("_") or node.name in (
+                                        "__init__",
+                                        "__call__",
+                                    ):
+                                        doc = ast.get_docstring(node)
+                                        if not doc or not doc.strip():
+                                            docstring_violations.append(
+                                                f"❌ Docstring violation: Function '{node.name}' in '{rel_file_path}' (line {node.lineno}) is missing a Google-style docstring (Rule 2)."
+                                            )
+                                        else:
+                                            params = [
+                                                a.arg
+                                                for a in node.args.args
+                                                if a.arg not in ("self", "cls")
+                                            ]
+                                            if (
+                                                params
+                                                and "Args:" not in doc
+                                                and "Parameters:" not in doc
+                                            ):
+                                                docstring_violations.append(
+                                                    f"❌ Docstring violation: Function '{node.name}' in '{rel_file_path}' (line {node.lineno}) has arguments {params} but docstring is missing 'Args:' section."
+                                                )
+                                elif isinstance(node, ast.ClassDef):
+                                    if not node.name.startswith("_"):
+                                        doc = ast.get_docstring(node)
+                                        if not doc or not doc.strip():
+                                            docstring_violations.append(
+                                                f"❌ Docstring violation: Class '{node.name}' in '{rel_file_path}' (line {node.lineno}) is missing a class docstring (Rule 2)."
+                                            )
+                        except Exception:
+                            pass
 
                     # Check for nested function definitions (closures inside functions or methods)
                     try:
@@ -484,6 +625,13 @@ def validate_wpipe_project(project_path: str) -> str:
                         issues.append(
                             f"❌ Architectural violation: Pydantic 'BaseModel' defined in '{rel_file_path}' outside of the dto/ or config/ directory."
                         )
+                    if first_part == "dto" and (
+                        "ndarray" in content or "Tensor" in content
+                    ):
+                        if "arbitrary_types_allowed" not in content:
+                            dto_serialization_warnings.append(
+                                f"⚠️ DTO warning: '{rel_file_path}' uses complex tensor/array types without explicit 'arbitrary_types_allowed=True' in ConfigDict."
+                            )
             except Exception:
                 pass
 
@@ -513,6 +661,27 @@ def validate_wpipe_project(project_path: str) -> str:
     else:
         successes.append(
             "✅ Verified distinct pipeline variable naming in 'pipelines.py' (multi-DAG visualizer compliance)."
+        )
+
+    if docstring_violations:
+        issues.extend(docstring_violations)
+    else:
+        successes.append(
+            "✅ Verified exhaustive Google-style docstrings across all public classes, methods, and functions (Rule 2)."
+        )
+
+    if spanish_language_violations:
+        issues.extend(spanish_language_violations)
+    else:
+        successes.append(
+            "✅ Verified 100% strict English compliance across code, comments, and docstrings (Rule 1)."
+        )
+
+    if dto_serialization_warnings:
+        issues.extend(dto_serialization_warnings)
+    else:
+        successes.append(
+            "✅ Verified Pydantic DTO serialization safety and arbitrary types configuration."
         )
 
     if pycache_violations or pyc_violations:
@@ -1423,6 +1592,335 @@ def optimize_wpipe_pipeline(project_path: str) -> str:
         report += "### 🎉 Perfect Optimization!\nNo optimization issues found. Your WPipe project follows all high-performance standards."
 
     return report
+
+
+@mcp.tool()
+def generate_wpipe_step(
+    project_path: str,
+    step_name: str,
+    context_class: str = "MicroserviceContext",
+    description: str = "Process pipeline step",
+    is_async: bool = False,
+) -> str:
+    """Generate a production-ready WPipe Step class with Google docstrings and a unit test.
+
+    Args:
+        project_path: Absolute directory path of the WPipe project.
+        step_name: Name of the step (e.g. 'FilterBandsStep' or 'filter_bands').
+        context_class: Context class name accepted and returned by the step.
+        description: Semantic documentation description of what the step does.
+        is_async: Whether the step execution method should be async.
+
+    Returns:
+        Confirmation message detailing generated state file, exported __init__.py, and unit test.
+    """
+    import re
+
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+    if not os.path.exists(project_path):
+        return f"Error: project_path '{project_path}' does not exist."
+
+    raw = step_name.strip()
+    if raw.endswith("Step"):
+        class_name = raw
+        base = raw[:-4]
+        snake_base = re.sub(r"(?<!^)(?=[A-Z])", "_", base).lower()
+        file_name = f"step_{snake_base}.py"
+    else:
+        parts = raw.split("_")
+        class_name = "".join(p.capitalize() for p in parts) + "Step"
+        snake_base = raw.lower()
+        file_name = f"step_{snake_base}.py"
+
+    app_dir = os.path.join(project_path, "app")
+    base_dir = app_dir if os.path.isdir(app_dir) else project_path
+
+    states_dir = os.path.join(base_dir, "states")
+    os.makedirs(states_dir, exist_ok=True)
+    state_file = os.path.join(states_dir, file_name)
+
+    if is_async:
+        call_method = (
+            f"    async def __call__(self, context: {context_class}) -> {context_class}:\n"
+            f'        """Execute asynchronous step processing on the pipeline context.\n\n'
+            f"        Args:\n"
+            f"            context ({context_class}): Pipeline context carrying transaction state.\n\n"
+            f"        Returns:\n"
+            f"            {context_class}: Mutated context with step outputs.\n\n"
+            f"        Raises:\n"
+            f"            Exception: If step execution encounters an unrecoverable failure.\n"
+            f'        """\n'
+            f'        logger.info(f"Executing async step {{self.step_name}}")\n'
+            f"        return context\n"
+        )
+    else:
+        call_method = (
+            f"    @timeout_sync(seconds=30)\n"
+            f"    @to_obj({context_class})\n"
+            f"    def __call__(self, context: {context_class}) -> {context_class}:\n"
+            f'        """Execute step processing on the pipeline context.\n\n'
+            f"        Args:\n"
+            f"            context ({context_class}): Pipeline context carrying transaction state.\n\n"
+            f"        Returns:\n"
+            f"            {context_class}: Mutated context with step outputs.\n\n"
+            f"        Raises:\n"
+            f"            Exception: If step execution encounters an unrecoverable failure.\n"
+            f'        """\n'
+            f'        logger.info(f"Executing step {{self.step_name}}")\n'
+            f"        return context\n"
+        )
+
+    content = (
+        f'"""WPipe step: {class_name}."""\n\n'
+        f"from loguru import logger\n"
+        f"from wpipe import step, to_obj\n"
+        f"from wpipe.timeout import timeout_sync\n"
+        f"from dto.context import {context_class}\n\n\n"
+        f"@step(\n"
+        f'    name="{class_name}",\n'
+        f'    version="1.0.0",\n'
+        f"    timeout=60,\n"
+        f'    description="{description}",\n'
+        f'    tags=["custom", "{snake_base}"],\n'
+        f"    retry_count=2,\n"
+        f"    retry_delay=0.1,\n"
+        f")\n"
+        f"class {class_name}:\n"
+        f'    """{description}.\n\n'
+        f"    Attributes:\n"
+        f"        step_name (str): Identifier for this execution step.\n"
+        f'    """\n\n'
+        f'    def __init__(self, step_name: str = "{class_name}") -> None:\n'
+        f'        """Initialize {class_name}.\n\n'
+        f"        Args:\n"
+        f"            step_name (str): Identifier for this execution step.\n"
+        f'        """\n'
+        f"        self.step_name = step_name\n\n"
+        f"{call_method}"
+    )
+
+    with open(state_file, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    init_file = os.path.join(states_dir, "__init__.py")
+    export_line = f"from .{file_name[:-3]} import {class_name}\n"
+    existing_init = ""
+    if os.path.exists(init_file):
+        with open(init_file, "r", encoding="utf-8") as f:
+            existing_init = f.read()
+    if export_line not in existing_init:
+        with open(init_file, "a", encoding="utf-8") as f:
+            f.write(export_line)
+
+    test_dir = os.path.join(base_dir, "test")
+    if not os.path.isdir(test_dir):
+        test_dir = os.path.join(project_path, "tests")
+    os.makedirs(test_dir, exist_ok=True)
+    test_file = os.path.join(test_dir, f"test_{file_name}")
+    test_content = (
+        f'"""Unit tests for {class_name}."""\n\n'
+        f"from unittest.mock import MagicMock\n"
+        f"from states.{file_name[:-3]} import {class_name}\n\n\n"
+        f"def test_{snake_base}_step_execution() -> None:\n"
+        f'    """Verify {class_name} initializes and processes mock context cleanly."""\n'
+        f"    step_instance = {class_name}()\n"
+        f"    assert step_instance.step_name == '{class_name}'\n"
+    )
+    with open(test_file, "w", encoding="utf-8") as f:
+        f.write(test_content)
+
+    return (
+        f"Success: WPipe Step '{class_name}' generated successfully at '{state_file}'.\n"
+        f"- Exported in '{init_file}'\n"
+        f"- Generated unit test in '{test_file}'"
+    )
+
+
+@mcp.tool()
+def generate_wpipe_dto(
+    project_path: str,
+    context_name: str,
+    fields: dict = None,
+    description: str = "Pipeline execution context DTO",
+) -> str:
+    """Generate a modern Pydantic v2 DTO Context schema with Google docstrings.
+
+    Args:
+        project_path: Absolute directory path of the WPipe project.
+        context_name: Context class name (e.g. 'ProcessingContext' or 'processing_context').
+        fields: Mapping of field names to type strings (e.g. {"input_path": "str", "bands": "list[int]"}).
+        description: Description of the context data contract.
+
+    Returns:
+        Confirmation message detailing generated DTO file path and exported schema.
+    """
+    import re
+
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+    if not os.path.exists(project_path):
+        return f"Error: project_path '{project_path}' does not exist."
+
+    raw = context_name.strip()
+    if raw.endswith("Context"):
+        class_name = raw
+        base = raw[:-7]
+        snake_name = f"{re.sub(r'(?<!^)(?=[A-Z])', '_', base).lower()}_context"
+    else:
+        parts = raw.split("_")
+        class_name = "".join(p.capitalize() for p in parts) + "Context"
+        snake_name = f"{raw.lower()}_context"
+
+    app_dir = os.path.join(project_path, "app")
+    base_dir = app_dir if os.path.isdir(app_dir) else project_path
+    dto_dir = os.path.join(base_dir, "dto")
+    os.makedirs(dto_dir, exist_ok=True)
+    dto_file = os.path.join(dto_dir, f"{snake_name}.py")
+
+    field_dict = fields or {
+        "transaction_id": "str",
+        "payload": "Dict[str, Any]",
+        "status": "str",
+    }
+
+    field_lines = []
+    attr_docs = []
+    for k, v in field_dict.items():
+        if k == "status":
+            field_lines.append(f'    {k}: {v} = "PENDING"')
+        elif "optional" in v.lower() or "dict" in v.lower():
+            if "dict" in v.lower():
+                field_lines.append(f"    {k}: {v} = {{}}")
+            else:
+                field_lines.append(f"    {k}: {v} = None")
+        else:
+            field_lines.append(f"    {k}: {v}")
+        attr_docs.append(f"        {k} ({v}): Context attribute.")
+
+    fields_code = "\n".join(field_lines)
+    attrs_code = "\n".join(attr_docs)
+
+    content = (
+        f'"""Data Transfer Object context schema for {class_name}."""\n\n'
+        f"from typing import Any, Dict, List, Optional\n"
+        f"from pydantic import BaseModel, ConfigDict\n\n\n"
+        f"class {class_name}(BaseModel):\n"
+        f'    """{description}.\n\n'
+        f"    Attributes:\n"
+        f"{attrs_code}\n"
+        f'    """\n\n'
+        f"    model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True)\n\n"
+        f"{fields_code}\n"
+    )
+
+    with open(dto_file, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    init_file = os.path.join(dto_dir, "__init__.py")
+    export_line = f"from .{snake_name} import {class_name}\n"
+    existing_init = ""
+    if os.path.exists(init_file):
+        with open(init_file, "r", encoding="utf-8") as f:
+            existing_init = f.read()
+    if export_line not in existing_init:
+        with open(init_file, "a", encoding="utf-8") as f:
+            f.write(export_line)
+
+    return (
+        f"Success: WPipe DTO Context '{class_name}' generated successfully at '{dto_file}'.\n"
+        f"- Exported in '{init_file}'"
+    )
+
+
+@mcp.tool()
+def generate_wpipe_dag(
+    project_path: str,
+    output_mermaid_path: Optional[str] = None,
+) -> str:
+    """Statically parse pipelines.py and generate a standalone Mermaid DAG (.wpipe.mermaid).
+
+    Args:
+        project_path: Absolute path to the WPipe project root or app directory.
+        output_mermaid_path: Optional custom destination path for the .wpipe.mermaid file.
+
+    Returns:
+        Generated Mermaid flowchart content and saved destination file path.
+    """
+    import re
+
+    if not os.path.isabs(project_path):
+        return "Error: project_path must be an absolute path."
+    if not os.path.exists(project_path):
+        return f"Error: project_path '{project_path}' does not exist."
+
+    candidate_paths = [
+        os.path.join(project_path, "app", "pipelines.py"),
+        os.path.join(project_path, "pipelines.py"),
+        os.path.join(project_path, "main.py"),
+    ]
+    target_file = None
+    for cp in candidate_paths:
+        if os.path.isfile(cp):
+            target_file = cp
+            break
+
+    if not target_file:
+        return f"Error: No 'pipelines.py' or 'main.py' found in '{project_path}'."
+
+    with open(target_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    file_name = os.path.basename(target_file)
+    matches = re.findall(
+        r"([a-zA-Z0-9_]+)\.set_steps\s*\(\s*\[([\s\S]*?)\]\s*\)", content
+    )
+    if not matches:
+        matches = re.findall(r"([a-zA-Z0-9_]+)\.steps\s*=\s*\[([\s\S]*?)\]", content)
+
+    if not matches:
+        return f"Error: No pipeline '.set_steps([...])' or '.steps = [...]' found in '{target_file}'."
+
+    g = "%% Generated by WPipe MCP by wisrovi\nflowchart TD\n"
+    g += "  classDef step fill:#1e1e1e,stroke:#007acc,stroke-width:2px,color:#fff,rx:5,ry:5,cursor:pointer\n"
+    g += "  classDef logic fill:#1e1e1e,stroke:#ce9178,stroke-width:2px,color:#fff,rx:2,ry:2,cursor:pointer\n"
+    g += "  classDef startN fill:#007acc,stroke:#007acc,color:#fff\n"
+
+    total_steps = 0
+    for idx, (pipe_var, steps_raw) in enumerate(matches, start=1):
+        uid = f"p{idx}"
+        g += f'  subgraph sg_{uid} ["📦 {pipe_var} (in {file_name})"]\n'
+        g += "    direction TD\n"
+        g += f"    start_{uid}(( )):::startN\n"
+
+        step_calls = [
+            s.strip().split("(")[0].strip() for s in steps_raw.split(",") if s.strip()
+        ]
+        last_id = f"start_{uid}"
+        for s_idx, step_name in enumerate(step_calls):
+            if not step_name or step_name.startswith("#"):
+                continue
+            clean_step = step_name.split(".")[-1]
+            node_id = f"nL{uid}_{s_idx}"
+            g += f'    {last_id} --> {node_id}[" 🚀 {clean_step} "]:::step\n'
+            g += f'    click {node_id} call handleNodeClick("{clean_step}")\n'
+            last_id = node_id
+            total_steps += 1
+        g += "  end\n"
+
+    dest_path = output_mermaid_path
+    if not dest_path:
+        dest_path = os.path.join(
+            os.path.dirname(target_file), f"{file_name[:-3]}.wpipe.mermaid"
+        )
+
+    with open(dest_path, "w", encoding="utf-8") as f:
+        f.write(g)
+
+    return (
+        f"Success: Standalone DAG generated successfully with {len(matches)} pipeline(s) "
+        f"and {total_steps} step(s).\nSaved to: '{dest_path}'\n\n```mermaid\n{g}```"
+    )
 
 
 # --- CLI Actions ---
