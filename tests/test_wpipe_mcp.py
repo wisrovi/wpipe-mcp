@@ -30,6 +30,8 @@ def test_manual_contains_guides():
     assert "STRICT SINGLE RESPONSIBILITY PRINCIPLE (SRP)" in text
     assert "ZERO DEAD CODE & REDUNDANCY" in text
     assert "STRICT ENGLISH POLICY (100% ENGLISH)" in text
+    assert "DISTINCT PIPELINE VARIABLE IDENTIFIERS FOR MULTI-DAG VISUALIZATION" in text
+    assert "Distinct Pipeline Variable Identifiers" in text
 
 
 def test_search_wpipe_step_returns_results():
@@ -338,6 +340,63 @@ def test_validate_wpipe_project_line_limit_and_nested_function_violations(tmp_pa
         "Architectural violation: Nested function definition 'inner_helper'" in report
     )
     assert "step_nested.py" in report
+
+
+def test_validate_wpipe_project_duplicate_pipeline_names(tmp_path):
+    """
+    Validates that validate_wpipe_project detects duplicate pipeline variable names
+    calling .set_steps() in pipelines.py to guarantee multi-DAG extension rendering.
+    """
+    target = str(tmp_path / "dup_pipeline_project")
+    server.deploy_wpipe_scaffolding(
+        target,
+        project_name="DupPipeApp",
+        pipeline_type="microservice",
+        include_tests=True,
+    )
+
+    pipelines_file = tmp_path / "dup_pipeline_project" / "app" / "pipelines.py"
+
+    # Inject duplicate variable names
+    dup_content = (
+        "from wpipe import Pipeline\n"
+        "from states.step_a import InferenciaStep\n\n"
+        "def create_a():\n"
+        "    pipeline = Pipeline('pipe_a')\n"
+        "    pipeline.set_steps([InferenciaStep()])\n"
+        "    return pipeline\n\n"
+        "def create_b():\n"
+        "    pipeline = Pipeline('pipe_b')\n"
+        "    pipeline.set_steps([InferenciaStep()])\n"
+        "    return pipeline\n"
+    )
+    pipelines_file.write_text(dup_content)
+
+    report = server.validate_wpipe_project(target)
+    assert "Compliance Issues & Warnings" in report
+    assert "Duplicate pipeline variable name(s)" in report
+    assert "pipeline" in report
+
+    # Fix with distinct variable names
+    distinct_content = (
+        "from wpipe import Pipeline\n"
+        "from states.step_a import InferenciaStep\n\n"
+        "def create_a():\n"
+        "    pipe_a = Pipeline('pipe_a')\n"
+        "    pipe_a.set_steps([InferenciaStep()])\n"
+        "    return pipe_a\n\n"
+        "def create_b():\n"
+        "    pipe_b = Pipeline('pipe_b')\n"
+        "    pipe_b.set_steps([InferenciaStep()])\n"
+        "    return pipe_b\n"
+    )
+    pipelines_file.write_text(distinct_content)
+
+    report_fixed = server.validate_wpipe_project(target)
+    assert "Compliance Status: Fully Compliant" in report_fixed
+    assert (
+        "Verified distinct pipeline variable naming in 'pipelines.py'" in report_fixed
+    )
 
 
 def test_document_wpipe_project(tmp_path):
