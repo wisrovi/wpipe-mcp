@@ -10,7 +10,7 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/wpipe-mcp.svg?color=blue)](https://pypi.org/project/wpipe-mcp/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/wpipe-mcp.svg)](https://pypi.org/project/wpipe-mcp/)
-[![Version](https://img.shields.io/badge/version-0.4.5-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/wisrovi/wpipe-mcp)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-1.0-orange.svg)](https://modelcontextprotocol.io)
 
@@ -55,9 +55,11 @@ flowchart LR
 ## ✨ Key Features
 
 - **🔍 Expert Catalog Search (`search_wpipe_step`)**: Search 100+ production-ready pipeline steps across official and community catalogs.
+- **🏗️ Granular Step & DTO Generators (`generate_wpipe_step`, `generate_wpipe_dto`)**: Scaffolds isolated `@step` classes and Pydantic v2 DTO contexts (`dto/`) with Google docstrings and Pytest suites.
+- **🗺️ Standalone DAG Generator (`generate_wpipe_dag`)**: Statically parses `pipelines.py` and compiles interactive multi-DAG Mermaid diagrams (`pipelines.wpipe.mermaid`).
 - **🏗️ Strict Architecture Enforcement (`get_wpipe_architect_manual`)**: Directs AI agents to follow modular folder separation: `dto/` for Pydantic Context models, `states/` for atomic `@step` components, `pipelines.py` for declarative DAG assembly, and `main.py` for runtime entrypoints.
 - **🚀 Declarative Pipeline Definition (`app/pipelines.py`)**: Dedicated specification and blueprint for standalone pipeline assembly with inline step instantiation (`set_steps([MyStep(), ...])`) and typed execution helper wrappers.
-- **🛡️ Automated QA Architectural Validation (`validate_wpipe_project`)**: Deep static analysis checking directory structure, `@step` locations, BaseModel placement, 0 dynamic reflection violations, and 0 compiled bytecode artifacts.
+- **🛡️ Automated QA Architectural Validation (`validate_wpipe_project`)**: Deep static analysis checking directory structure, `@step` locations, BaseModel placement, 0 dynamic reflection violations, 0 compiled bytecode artifacts, AST Google docstring completeness, and 100% strict English compliance.
 - **⚙️ Automated Monolith Refactoring (`refactor_monolith_to_wpipe`)**: Converts procedural monolithic Python scripts into modular class-based WPipe steps (`@step`) and shared Pydantic contexts.
 - **📊 Automatic Pipeline Documentation (`document_wpipe_project`)**: Generates comprehensive Mermaid DAG flowcharts, step tables, and technical specifications directly inside the project's root `README.md`.
 - **🧪 Unit Test Generation (`generate_wpipe_tests`)**: Scaffolds isolated `pytest` test suites with extensive English docstrings and mocked execution contexts.
