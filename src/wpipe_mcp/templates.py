@@ -108,12 +108,25 @@ class TemplateGenerator:
             "    retry_delay=0.1,\n"
             ")\n"
             "class InferenciaStep:\n"
-            '    """WPipe State wrapper that calls the underlying decoupled vision service."""\n'
-            '    def __init__(self, model_path: str = "app/model/vision_model.pt"):\n'
+            '    """WPipe State wrapper that calls the underlying decoupled vision service.\n\n'
+            "    Attributes:\n"
+            "        service (VisionInferenceService): Decoupled inference engine.\n"
+            '    """\n'
+            '    def __init__(self, model_path: str = "app/model/vision_model.pt") -> None:\n'
+            '        """Initialize InferenciaStep with model path.\n\n'
+            "        Args:\n"
+            "            model_path (str): File system path to model weights.\n"
+            '        """\n'
             "        self.service = VisionInferenceService(model_path=model_path)\n\n"
             "    @timeout_sync(seconds=5)\n"
             "    @to_obj(MicroserviceContext)\n"
-            "    def __call__(self, context: Any) -> Any:\n"
+            "    def __call__(self, context: MicroserviceContext) -> MicroserviceContext:\n"
+            '        """Execute inference step on the pipeline context.\n\n'
+            "        Args:\n"
+            "            context (MicroserviceContext): Pipeline context carrying transaction state.\n\n"
+            "        Returns:\n"
+            "            MicroserviceContext: Mutated context containing inference results.\n"
+            '        """\n'
             '        print(f"Executing step for transaction: {context.transaction_id}")\n'
             "        # Call decoupled business/inference service\n"
             "        inference_result = self.service.run_inference(context.input_path)\n"
@@ -124,12 +137,28 @@ class TemplateGenerator:
         )
 
         vision_service = (
-            "import os\n\n"
+            "import os\n"
+            "from typing import Any, Dict\n\n"
             "class VisionInferenceService:\n"
-            '    """Decoupled service handling core machine learning model inference."""\n'
-            "    def __init__(self, model_path: str):\n"
+            '    """Decoupled service handling core machine learning model inference.\n\n'
+            "    Attributes:\n"
+            "        model_path (str): Path to the serialized neural network weights.\n"
+            '    """\n'
+            "    def __init__(self, model_path: str) -> None:\n"
+            '        """Initialize the vision inference service.\n\n'
+            "        Args:\n"
+            "            model_path (str): File system path to the model artifact.\n"
+            '        """\n'
             "        self.model_path = model_path\n\n"
-            "    def run_inference(self, input_path: str) -> dict:\n"
+            "    def run_inference(self, input_path: str) -> Dict[str, Any]:\n"
+            '        """Execute model inference on an input image.\n\n'
+            "        Args:\n"
+            "            input_path (str): Path to the target image file.\n\n"
+            "        Returns:\n"
+            "            Dict[str, Any]: Inference result dictionary containing output path and confidence.\n\n"
+            "        Raises:\n"
+            "            FileNotFoundError: If input image does not exist.\n"
+            '        """\n'
             "        # Dummy inference logic for scaffolding\n"
             '        if not os.path.exists(input_path) and input_path != "mock_path":\n'
             '            raise FileNotFoundError(f"Input file not found: {input_path}")\n'
@@ -141,9 +170,16 @@ class TemplateGenerator:
         )
 
         helpers_py = (
-            "import os\n\n"
-            "def validate_file_extension(filename: str, allowed: set) -> bool:\n"
-            '    """Pure utility function to validate file extension."""\n'
+            "import os\n"
+            "from typing import Set\n\n"
+            "def validate_file_extension(filename: str, allowed: Set[str]) -> bool:\n"
+            '    """Pure utility function to validate file extension.\n\n'
+            "    Args:\n"
+            "        filename (str): Name or path of the target file.\n"
+            '        allowed (Set[str]): Allowed extension strings (e.g. {".png", ".jpg"}).\n\n'
+            "    Returns:\n"
+            "        bool: True if file extension is within allowed set, False otherwise.\n"
+            '    """\n'
             "    _, ext = os.path.splitext(filename)\n"
             "    return ext.lower() in allowed\n"
         )
@@ -189,21 +225,25 @@ class TemplateGenerator:
 
         main_py = (
             "import sys\n"
+            "from typing import Any, Dict\n"
             "from wpipe.exception.api_error import ProcessError\n"
-            "from wdecorators import time_execution\n"
             "from wpipe import ResourceMonitor, TaskTimer\n"
             "from pipelines import build_inference_pipeline\n\n"
-            "def handle_event(event_data: dict):\n"
-            '    """Entry point that receives event trigger, runs pipeline and logs resource usage."""\n'
+            "def handle_event(event_data: Dict[str, Any]) -> Dict[str, Any]:\n"
+            '    """Entry point that receives event trigger, runs pipeline and logs resource usage.\n\n'
+            "    Args:\n"
+            "        event_data (Dict[str, Any]): Event payload initiating the pipeline run.\n\n"
+            "    Returns:\n"
+            "        Dict[str, Any]: Pipeline execution result.\n\n"
+            "    Raises:\n"
+            "        ProcessError: If pipeline execution fails unrecoverably.\n"
+            '    """\n'
             "    pipeline = build_inference_pipeline()\n"
             "    \n"
             "    try:\n"
             '        with ResourceMonitor("microservice_monitor") as monitor:\n'
             '            with TaskTimer("microservice_timer", timeout_seconds=900) as timer:\n'
-            "                @time_execution\n"
-            "                def run():\n"
-            "                    return pipeline.run(event_data)\n"
-            "                result = run()\n"
+            "                result = pipeline.run(event_data)\n"
             "                \n"
             "        summary = monitor.get_summary()\n"
             '        print(f"Inference successfully finished. Elapsed time: {timer.elapsed_seconds:.2f}s")\n'
@@ -300,9 +340,9 @@ class TemplateGenerator:
         )
 
         state_template = (
+            "from typing import Any\n"
             "from wpipe import step, to_obj\n"
             "from wpipe.timeout import timeout_sync\n"
-            "from typing import Any\n"
             "from dto.process_context import ProcessDataContext\n\n"
             "@step(\n"
             '    name="ProcessData",\n'
@@ -314,28 +354,42 @@ class TemplateGenerator:
             "    retry_delay=0.01,\n"
             ")\n"
             "class ProcessDataStep:\n"
+            '    """Advanced WPipe State: ProcessData.\n\n'
+            "    Attributes:\n"
+            "        config (str): Execution configuration setting.\n"
             '    """\n'
-            "    Advanced WPipe State: ProcessData\n"
-            "    Generated by wpipe-mcp Architect.\n"
-            '    """\n'
-            "    \n"
-            '    def __init__(self, config: str = "default_value"):\n'
+            '    def __init__(self, config: str = "default_value") -> None:\n'
+            '        """Initialize ProcessDataStep with configuration.\n\n'
+            "        Args:\n"
+            "            config (str): Configuration parameter for the step.\n"
+            '        """\n'
             "        self.config = config\n\n"
             "    @timeout_sync(seconds=2)\n"
             "    @to_obj(ProcessDataContext)\n"
-            "    def __call__(self, context: Any) -> Any:\n"
-            "        # Professional logic here\n"
+            "    def __call__(self, context: ProcessDataContext) -> ProcessDataContext:\n"
+            '        """Execute business processing on the pipeline context.\n\n'
+            "        Args:\n"
+            "            context (ProcessDataContext): Typed context instance.\n\n"
+            "        Returns:\n"
+            "            ProcessDataContext: Mutated pipeline context.\n"
+            '        """\n'
             '        print(f"🚀 Executing ProcessData with config: {self.config}")\n'
             "        return context\n"
         )
 
         pipeline_template = (
             "import os\n"
-            "from wdecorators import time_execution\n"
+            "from typing import Any, Dict\n"
             "from wpipe import Pipeline, ResourceMonitor, TaskTimer\n"
             "from wpipe.exception.api_error import ProcessError\n"
             "from states.process_step import ProcessDataStep\n\n"
-            "def run_pipeline():\n"
+            "def run_pipeline() -> Dict[str, Any]:\n"
+            '    """Construct and execute the high-performance pipeline.\n\n'
+            "    Returns:\n"
+            "        Dict[str, Any]: Pipeline execution result dictionary.\n\n"
+            "    Raises:\n"
+            "        ProcessError: If pipeline execution encounters a processing failure.\n"
+            '    """\n'
             '    db_path = "output/tracking.db"  # Metrics, events, and forensics\n'
             '    config_dir = ("configs",)      # Optional YAML/JSON configs\n\n'
             "    pipeline = Pipeline(\n"
@@ -356,19 +410,16 @@ class TemplateGenerator:
             '    initial_data = {{"field": "init"}}\n\n'
             "    try:\n"
             '        with ResourceMonitor("{name}_monitor") as monitor:\n'
-            '            with TaskTimer("{name}_timer", timeout_seconds=900) as timer:\n\n'
-            "                @time_execution\n"
-            "                def run():\n"
-            "                    return pipeline.run(initial_data)\n\n"
-            "                result = run()\n"
-            "                \n"
+            '            with TaskTimer("{name}_timer", timeout_seconds=900) as timer:\n'
+            "                result = pipeline.run(initial_data)\n\n"
             "        summary = monitor.get_summary()\n"
             "        print(f\"Peak RAM: {{summary['peak_ram_mb']}} MB\")\n"
             "        print(f\"Avg CPU: {{summary['avg_cpu_percent']}}%\")\n"
             '        print(f"Total time: {{timer.elapsed_seconds:.2f}}s")\n'
             "        return result\n"
             "    except ProcessError as e:\n"
-            '        print(f"Error occurred: {{e}}")\n\n'
+            '        print(f"Error occurred: {{e}}")\n'
+            "        raise e\n\n"
             'if __name__ == "__main__":\n'
             "    run_pipeline()\n"
         ).format(name=project_name)
