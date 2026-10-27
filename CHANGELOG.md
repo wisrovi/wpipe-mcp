@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.5] - 2026-10-27
+
+### Added
+- **WPipe Architectural Standards & QA Rules (Rules 11, 12 & 13)**:
+  - **Mandatory User Inquiry & Decision Protocol (Rule 12)**: Strictly obligates AI agents and developers to NEVER make silent assumptions regarding legacy code retention or cleanup. Agents must explicitly prompt and consult the user before deleting obsolete methods/files, preserving legacy backwards-compatibility wrappers, or choosing between functionality-first vs aggressive refactoring.
+  - **Exhaustive Google-Style Docstrings (Rule 2)**: Every module, class, method, and function must include complete Google-style docstrings explicitly documenting all parameters (`Args:` with types and semantic descriptions), return types and values (`Returns:`), and exceptions raised with conditions (`Raises:`). Empty or placeholder docstrings are strictly prohibited.
+  - **Strict English Policy across Code and UI (Rule 1)**: Mandates 100% English across all code symbols, docstrings, comments, log messages, test names, and user interface elements (Gradio tabs, buttons, form inputs, markdown FAQs, status alerts).
+  - **Strict Single Responsibility Principle (SRP) Across All Files (Rule 10)**: Clear separation of concerns enforced across microservices. View layouts must only construct UI elements, while event handlers reside in dedicated controller modules. In-memory data containers/cubes must be decoupled from file loaders, directory batch processors, and mathematical algorithms.
+  - **Zero Dead Code & Redundancy (Rule 13)**: Clean repository hygiene requiring unused functions, dead code blocks, obsolete legacy wrappers, and unused imports to be removed or explicitly brought to the user's attention. Redundant duplicate files or copy-pasted services are strictly forbidden.
+- **Scaffolding & Blueprint Improvements**:
+  - Updated all code blueprints in `get_wpipe_architect_blueprints()` and `templates.py` to adhere to exhaustive Google-style docstrings with explicit arguments, return types, and exceptions.
+  - Removed nested function closures in generated execution wrappers (`main.py`) for standard and microservice boilerplates.
+- **Unit Test Coverage**:
+  - Added test assertions in `tests/test_wpipe_mcp.py` verifying the presence and enforcement of Rules 1, 2, 10, 12, and 13 in `get_wpipe_architect_manual()`.
+
 ## [0.4.4] - 2026-10-22
 
 ### Added
