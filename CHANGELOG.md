@@ -1,6 +1,16 @@
 # Changelog
 
-## [0.5.0] - 2026-10-27
+## [0.5.1] - 2026-10-27
+
+### Added
+- **WPipe Quality Rule 15 (Strictly Pinned Requirements)**:
+  - Mandated that all dependencies in `requirements.txt` or `pyproject.toml` MUST have strictly pinned, exact versions (`package==X.Y.Z`). Floating versions (`>=`, `~=`) or unpinned bare names are strictly forbidden in production WPipe microservices to guarantee 100% deterministic container builds.
+  - Added automated verification in `validate_wpipe_project()` to scan and flag any unpinned packages in `requirements.txt`.
+- **WPipe Quality Rule 16 (Internal Test Suite Location in Microservices)**:
+  - Mandated that in microservices (`app/` layout), all unit test suites MUST reside directly inside the microservice package (`app/tests/` or `app/test/`), never loose in the root folder outside `app/`.
+  - Added automated verification in `validate_wpipe_project()` checking for test directory placement.
+- **Scaffolding Template Updates**:
+  - Updated `deploy_wpipe_scaffolding()` templates to generate strictly pinned versions (`==`) across all blueprints.
 
 ### Added
 - **New MCP Code Generation Tools**:
