@@ -315,7 +315,7 @@ class TemplateGenerator:
         )
 
         blueprints = {
-            "requirements.txt": "wpipe>=1.0.0\nwdecorators>=2.0.0\npydantic>=2.0.0\nloguru>=0.7.0\n",
+            "requirements.txt": "wpipe==2.5.13\nwdecorators==2.2.0\npydantic==2.10.6\nloguru==0.7.3\n",
             ".pylintrc": pylintrc,
             "run_tests_docker.sh": run_tests_docker_sh,
             "README.md": readme_md,
@@ -506,7 +506,7 @@ class TemplateGenerator:
         )
 
         blueprints = {
-            "requirements.txt": "wpipe>=1.0.0\nwdecorators>=2.0.0\npydantic>=2.0.0\n",
+            "requirements.txt": "wpipe==2.5.13\nwdecorators==2.2.0\npydantic==2.10.6\n",
             ".pylintrc": pylintrc,
             "README.md": readme_md,
             "dto/__init__.py": "from .process_context import ProcessDataContext\n",
@@ -520,6 +520,6 @@ class TemplateGenerator:
         if pipeline_type == "ai_vision_mlops":
             blueprints[
                 "requirements.txt"
-            ] += "wyolo>=1.0.0\nwtrain>=1.0.0\ncelery>=5.3.0\n"
+            ] += "wyolo==1.0.0\nwtrain==1.0.0\ncelery==5.3.6\n"
 
         return blueprints
