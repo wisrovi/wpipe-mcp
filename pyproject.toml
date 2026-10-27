@@ -1,6 +1,6 @@
 [project]
 name = "wpipe-mcp"
-version = "0.4.6"
+version = "0.5.0"
 
 description = "MCP Server for WPipe Architecting"
 readme = "README.md"
@@ -42,3 +42,7 @@ wpipe-mcp = "wpipe_mcp.server:main"
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
