@@ -321,7 +321,9 @@ def get_wpipe_architect_manual() -> str:
         "    - Architectural tradeoffs: prioritizing non-breaking functionality vs deep cleanup.\n"
         "13. ZERO DEAD CODE & REDUNDANCY (CLEAN REPOSITORY HYGIENE): Any unused functions, dead code blocks, obsolete legacy wrappers, and unused imports MUST NOT be left behind silently. They must either be removed cleanly or presented to the user for an explicit decision. Redundant duplicate files or copy-pasted services are strictly prohibited.\n"
         "14. DISTINCT PIPELINE VARIABLE IDENTIFIERS FOR MULTI-DAG VISUALIZATION: When multiple pipelines or factory builders are defined in a file (e.g. in `app/pipelines.py`), each pipeline instance MUST be assigned to a distinct, unique, and descriptive variable identifier (e.g. `hsi_analysis_pipeline = _create_pipeline(...)`, `hsi_preview_pipeline = _create_pipeline(...)`, `msi_preview_pipeline = ...`, `msi_analyze_pipeline = ...`), NEVER a generic, shared variable name (such as `pipeline = ...` repeated in each function).\n"
-        "    Technical rationale: The WPipe VS Code extension DAG parser scans `.set_steps(...)` calls and deduplicates pipelines using the variable name prefix before the method call (`inst.text.split('.')[0]`). Reusing generic variable names causes the extension to register only the first pipeline and silently discard all subsequent pipelines from the Mermaid DAG preview panel. Using unique, semantic variable names guarantees that the VS Code extension discovers and renders all pipelines as separate subgraphs simultaneously in the DAG Webview.\n\n"
+        "    Technical rationale: The WPipe VS Code extension DAG parser scans `.set_steps(...)` calls and deduplicates pipelines using the variable name prefix before the method call (`inst.text.split('.')[0]`). Reusing generic variable names causes the extension to register only the first pipeline and silently discard all subsequent pipelines from the Mermaid DAG preview panel. Using unique, semantic variable names guarantees that the VS Code extension discovers and renders all pipelines as separate subgraphs simultaneously in the DAG Webview.\n"
+        "15. STRICTLY PINNED REQUIREMENTS (ZERO FLOATING VERSIONS): All external dependencies defined in requirements.txt or pyproject.toml MUST be strictly pinned to exact versions using '==' (e.g., package==X.Y.Z). Floating versions (such as '>=', '~=', or bare package names) are strictly prohibited in production WPipe microservices to guarantee 100% deterministic, reproducible container builds and environment parity across development, staging, and Kubernetes production clusters.\n"
+        "16. INTERNAL TEST SUITE LOCATION (app/tests/ OR app/test/): In dockerized microservice architectures (app/ layout), all unit test suites, fixtures, test mocks, and coverage runners MUST reside directly inside the microservice package itself (app/tests/ or app/test/), NOT loose in the root project folder. This ensures that microservice tests are fully self-contained, isolated within the microservice domain boundary, and correctly mounted and executable inside dockerized test environments.\n\n"
         "--- ASYNCHRONOUS PIPELINE PATTERNS (I/O BOUND WORKLOADS) ---\n"
         "For non-blocking concurrency and high-throughput I/O pipelines (e.g. streaming camera frames, querying databases, HTTP requests):\n"
         "1. Define asynchronous step execution via `async def __call__(self, context: ContextClass) -> ContextClass:`.\n"
@@ -376,7 +378,7 @@ def validate_wpipe_project(project_path: str) -> str:
             successes.append(f"✅ Found directory: '{d}/' in {base_dir}.")
 
     if is_microservice:
-        optional_dirs = ["config", "model", "services", "utils", "test"]
+        optional_dirs = ["config", "model", "services", "utils"]
         for d in optional_dirs:
             dir_path = os.path.join(base_dir, d)
             if not os.path.exists(dir_path) or not os.path.isdir(dir_path):
@@ -385,6 +387,46 @@ def validate_wpipe_project(project_path: str) -> str:
                 )
             else:
                 successes.append(f"✅ Found optional directory: '{d}/' in app/.")
+
+        # Check Rule 16: Test Directory Location (app/tests or app/test inside microservice)
+        root_tests = os.path.join(project_path, "tests")
+        app_tests = os.path.join(base_dir, "tests")
+        app_test = os.path.join(base_dir, "test")
+        has_app_tests = os.path.exists(app_tests) or os.path.exists(app_test)
+        if os.path.exists(root_tests) and not has_app_tests:
+            issues.append(
+                f"❌ Test directory location violation (Rule 16): Found tests directory at '{root_tests}' in project root outside 'app/'. In WPipe microservices, the unit test suite MUST reside inside the microservice package (e.g. 'app/tests/' or 'app/test/')."
+            )
+        elif has_app_tests:
+            successes.append(
+                "✅ Verified unit tests directory is correctly located inside microservice (app/tests/ or app/test/) (Rule 16)."
+            )
+        else:
+            issues.append(
+                "⚠️ Recommendation: Test directory not found in 'app/tests/' (Rule 16). Always ask the user before generating test suites."
+            )
+
+    # Check Rule 15: Strictly Pinned Dependencies
+    requirements_file = os.path.join(project_path, "requirements.txt")
+    if os.path.exists(requirements_file):
+        try:
+            with open(requirements_file, "r", encoding="utf-8", errors="ignore") as rf:
+                req_lines = [
+                    l.strip()
+                    for l in rf
+                    if l.strip() and not l.strip().startswith(("#", "--", "-e"))
+                ]
+            unpinned = [l for l in req_lines if "==" not in l]
+            if unpinned:
+                issues.append(
+                    f"❌ Dependency pinning violation (Rule 15): Found {len(unpinned)} unpinned or floating dependency entry/entries in 'requirements.txt' ({unpinned[:5]}). All external packages MUST be strictly pinned with exact versions ('==', e.g. package==1.2.3) for deterministic container builds."
+                )
+            else:
+                successes.append(
+                    "✅ Verified strictly pinned dependencies ('==') across requirements.txt (Rule 15)."
+                )
+        except Exception:
+            pass
 
     step_decorator_regex = re.compile(r"@step\s*\(")
     base_model_regex = re.compile(r"class\s+\w+\s*\(\s*BaseModel\s*\)")
